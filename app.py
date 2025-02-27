@@ -1,19 +1,20 @@
-from flask import Flask, jsonify, request
-from flask_cors import CORS
+import os
+from flask import Flask, jsonify
+from dotenv import load_dotenv  # Import dotenv
+
+# ✅ Load environment variables from .env
+load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+
+# ✅ Use environment variables
+PORT = int(os.getenv("PORT", 5000))  # Default to 5000 for local debugging
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/mydb")
+SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")
 
 @app.route("/", methods=["GET"])
 def home():
     return jsonify({"message": "Welcome to Fitness API"})
 
-@app.route("/login", methods=["POST"])
-def login():
-    data = request.json
-    if data["email"] == "test@example.com" and data["password"] == "password":
-        return jsonify({"message": "Login successful"})
-    return jsonify({"message": "Invalid credentials"}), 401
-
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run(host="0.0.0.0", port=PORT)

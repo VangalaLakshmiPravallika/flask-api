@@ -23,7 +23,7 @@ const MealTracker = ({ navigation }) => {
   useEffect(() => {
     const fetchFoodItems = async () => {
       try {
-        const response = await axios.get("https://flask-s8i3.onrender.com/api/get-food-items");
+        const response = await axios.get("https://flask-api-439a.onrender.com/api/get-food-items");
         if (response.data.food_items.length === 0) {
           Alert.alert("⚠️ Warning", "No food items found in the database.");
         }
@@ -55,7 +55,7 @@ const MealTracker = ({ navigation }) => {
       }
 
       await axios.post(
-        "https://flask-s8i3.onrender.com/api/log-meal",
+        "https://flask-api-439a.onrender.com/api/log-meal",
         { meals },
         { headers: { Authorization: `Bearer ${token}` } }
       );

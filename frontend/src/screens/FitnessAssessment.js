@@ -20,7 +20,7 @@ const FitnessAssessment = ({ navigation }) => {
       }
 
       const response = await axios.post(
-        "https://flask-s8i3.onrender.com/api/fitness-assessment",
+        "https://flask-api-439a.onrender.com/api/fitness-assessment",
         { pushups, squats, plank_seconds: plankSeconds }, 
         { headers: { Authorization: `Bearer ${token}` } } 
       );

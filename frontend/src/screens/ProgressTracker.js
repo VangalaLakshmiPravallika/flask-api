@@ -21,7 +21,7 @@ const ProgressTracker = () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
 
-      const response = await axios.get("https://flask-s8i3.onrender.com/api/get-progress", {
+      const response = await axios.get("https://flask-api-439a.onrender.com/api/get-progress", {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -40,7 +40,7 @@ const ProgressTracker = () => {
 
   const resetProgress = async (token) => {
     try {
-      await axios.post("https://flask-s8i3.onrender.com/api/reset-progress", {}, {
+      await axios.post("https://flask-api-439a.onrender.com/api/reset-progress", {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
 

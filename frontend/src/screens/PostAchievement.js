@@ -43,7 +43,7 @@ const PostAchievement = () => {
   const fetchAchievements = async (token) => {
     try {
       console.log("🔄 Fetching achievements...");
-      const response = await axios.get("https://flask-s8i3.onrender.com/api/get-achievements", {
+      const response = await axios.get("https://flask-api-439a.onrender.com/api/get-achievements", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -62,7 +62,7 @@ const PostAchievement = () => {
       console.log("📌 Posting to group:", group, achievement);
 
       const response = await axios.post(
-        "https://flask-s8i3.onrender.com/api/group-post",
+        "https://flask-api-439a.onrender.com/api/group-post",
         { group_name: group, content: `🏆 ${achievement.title} - ${achievement.description}` },
         { headers: { Authorization: `Bearer ${token}` } }
       );

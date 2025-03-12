@@ -38,7 +38,7 @@ const GroupPosts = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        `https://flask-s8i3.onrender.com/api/get-group-posts/${group}`,
+        `https://flask-api-439a.onrender.com/api/get-group-posts/${group}`,
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
       setPosts(response.data);
@@ -52,7 +52,7 @@ const GroupPosts = () => {
   const likePost = async (postContent) => {
     try {
       await axios.post(
-        "https://flask-s8i3.onrender.com/api/like-post",
+        "https://flask-api-439a.onrender.com/api/like-post",
         { group_name: group, post_content: postContent },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -76,7 +76,7 @@ const GroupPosts = () => {
 
     try {
       await axios.post(
-        "https://flask-s8i3.onrender.com/api/comment-post",
+        "https://flask-api-439a.onrender.com/api/comment-post",
         { group_name: group, post_content: postContent, comment: commentText },
         { headers: { Authorization: `Bearer ${token}` } }
       );

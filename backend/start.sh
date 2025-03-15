@@ -1,2 +1,3 @@
 #!/bin/bash
-gunicorn -w 4 -b 0.0.0.0:10000 app:app
+export FLASK_APP=app.py  # Make sure Flask loads the correct file
+flask run --host=0.0.0.0 --port=10000  # Run Flask manually

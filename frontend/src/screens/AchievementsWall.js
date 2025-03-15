@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     padding: 20, 
-    backgroundColor: "#E8F5E9" // 🌿 Soft pastel green background
+    backgroundColor: "#E8F5E9" 
   },
   heading: { 
     fontSize: 26, 
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   scrollContainer: { flexGrow: 1 },
   achievementCard: {
     padding: 15,
-    backgroundColor: "#F9E79F", // Light yellow for contrast
+    backgroundColor: "#F9E79F", 
     borderRadius: 12,
     marginBottom: 12,
     shadowColor: "#000",
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 4,
     borderLeftWidth: 5,
-    borderLeftColor: "#D4AC0D", // Gold accent
+    borderLeftColor: "#D4AC0D", 
   },
   title: { 
     fontSize: 18, 

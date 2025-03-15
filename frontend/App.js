@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { AppState, View, Text, StyleSheet } from "react-native";
+import { AppState } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import AppNavigator from "./AppNavigator";
 import { Accelerometer } from "expo-sensors";
@@ -35,26 +35,5 @@ export default function App() {
     return () => subscription.remove();
   }, [lastZ]);
 
-  return (
-    <View style={styles.container}>
-      <AppNavigator />
-      <View style={styles.stepContainer}>
-        <Text style={styles.stepText}>Steps: {steps}</Text>
-      </View>
-    </View>
-  );
+  return <AppNavigator />; // ✅ No UI for step counter here
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  stepContainer: {
-    position: "absolute",
-    bottom: 30,
-    left: "50%",
-    transform: [{ translateX: -50 }],
-    backgroundColor: "black",
-    padding: 10,
-    borderRadius: 10,
-  },
-  stepText: { fontSize: 20, color: "white", fontWeight: "bold" },
-});

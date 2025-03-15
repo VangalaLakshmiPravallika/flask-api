@@ -5,7 +5,6 @@ import {
   TouchableOpacity, 
   Animated, 
   StyleSheet, 
-  Image, 
   ImageBackground, 
   Alert, 
   Dimensions 
@@ -13,6 +12,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import StepCounter from "./StepCounter"; 
 
 const { height, width } = Dimensions.get("window");
 
@@ -98,6 +98,9 @@ const HomeScreen = () => {
 
         {/* App Title */}
         <Text style={styles.title}>Fit-Folks</Text>
+
+        {/* ✅ Step Counter Added Below Title ✅ */}
+        <StepCounter />
       </View>
     </ImageBackground>
   );

@@ -18,6 +18,7 @@ import FitnessAssessment from "./src/screens/FitnessAssessment";
 import WorkoutPlan from "./src/screens/WorkoutPlan";
 import ProgressTracker from "./src/screens/ProgressTracker";
 import SoothingMusic from "./src/screens/SoothingMusic";
+import StepCounter from "./src/screens/StepCounter";
 const Stack = createStackNavigator();
 
 export default function AppNavigator() {
@@ -41,8 +42,7 @@ export default function AppNavigator() {
 
         <Stack.Screen name="SleepTracker" component={SleepTracker} options={{ title:"Sleep Tracker" }} />
         <Stack.Screen name="Achievements" component={AchievementsWall} options={{ title:"Achievements" }} />
-
-
+        <Stack.Screen name="StepCounter" component={StepCounter} options={{ title: "Step Counter" }} />
         <Stack.Screen name="JoinGroup" component={JoinGroup} options={{ title:"Join a Group" }} />
         <Stack.Screen name="PostAchievement" component={PostAchievement} options={{ title:"Post an Achievement" }} />
         <Stack.Screen name="GroupPosts" component={GroupPosts} options={{ title:"Group Posts" }} />

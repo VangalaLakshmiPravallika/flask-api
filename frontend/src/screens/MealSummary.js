@@ -20,7 +20,7 @@ const MealSummary = () => {
         return;
       }
 
-      const response = await axios.get("https://flask-api-439a.onrender.com/api/get-meals", {
+      const response = await axios.get("https://healthfitnessbackend.onrender.com/api/get-meals", {
         headers: { Authorization: `Bearer ${token}` },
       });
 

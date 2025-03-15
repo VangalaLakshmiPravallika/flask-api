@@ -24,7 +24,7 @@ export default function LoginScreen({ navigation }) {
     }
 
     try {
-      const response = await fetch("https://flask-api-439a.onrender.com/api/login", {
+      const response = await fetch("https://healthfitnessbackend.onrender.com/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

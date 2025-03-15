@@ -23,7 +23,7 @@ const RegisterScreen = () => {
     }
 
     try {
-      const response = await fetch("https://flask-api-439a.onrender.com/api/register", {
+      const response = await fetch("https://healthfitnessbackend.onrender.com/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

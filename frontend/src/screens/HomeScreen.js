@@ -21,7 +21,7 @@ const HomeScreen = () => {
   const [loggedIn, setLoggedIn] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const slideAnim = useState(new Animated.Value(-250))[0];
-  const imageSlideAnim = useState(new Animated.Value(-150))[0]; // Image starts above the screen
+  const imageSlideAnim = useState(new Animated.Value(-150))[0]; 
 
   useEffect(() => {
     const checkLoginStatus = async () => {
@@ -40,9 +40,8 @@ const HomeScreen = () => {
   }, [menuVisible]);
 
   useEffect(() => {
-    // Slide image down when component mounts
     Animated.timing(imageSlideAnim, {
-      toValue: 30, // Adjust based on where you want the image to stop
+      toValue: 30,
       duration: 800,
       useNativeDriver: true,
     }).start();
@@ -166,25 +165,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   slidingImage: {
-    width: width * 0.8, // Make it responsive
-    height: height * 0.25, // Adjust for better visibility
-    resizeMode: "contain", // Ensures it doesn't get stretched
-    marginBottom: 10, // Space between the image and text
+    width: width * 0.8, 
+    height: height * 0.25, 
+    resizeMode: "contain", 
+    marginBottom: 10, 
   },
   title: {
-    fontSize: 32, // Slightly bigger for emphasis
+    fontSize: 32,
     fontWeight: "bold",
     marginBottom: 30,
-    color: "#FFD700", // A golden color for a premium look
+    color: "#FFD700", 
     textAlign: "center",
-    letterSpacing: 1.5, // Adds better spacing for readability
-    textTransform: "uppercase", // Makes the title more prominent
-    textShadowColor: "rgba(0, 0, 0, 0.7)", // Stronger shadow for depth
-    textShadowOffset: { width: 2, height: 2 }, // More visible 3D effect
-    textShadowRadius: 12, // Slightly increased for smooth blending
-    paddingHorizontal: 10, // Ensures text is not too compact
-    borderBottomWidth: 3, // Adds an underline effect
-    borderBottomColor: "#fff", // White underline for contrast
+    letterSpacing: 1.5, 
+    textTransform: "uppercase", 
+    textShadowColor: "rgba(0, 0, 0, 0.7)", 
+    textShadowOffset: { width: 2, height: 2 }, 
+    textShadowRadius: 12, 
+    paddingHorizontal: 10, 
+    borderBottomWidth: 3, 
+    borderBottomColor: "#fff", 
   },
 });
 

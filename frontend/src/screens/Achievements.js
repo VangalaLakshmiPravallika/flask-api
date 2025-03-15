@@ -19,7 +19,7 @@ const AchievementsWall = () => {
         return;
       }
 
-      const response = await fetch("https://flask-api-439a.onrender.com/api/get-achievements", {
+      const response = await fetch("https://healthfitnessbackend.onrender.com/api/get-achievements", {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -39,7 +39,7 @@ const AchievementsWall = () => {
       setPosting(true);
       const token = await AsyncStorage.getItem("authToken");
 
-      const response = await fetch("https://flask-api-439a.onrender.com/api/post-badge", {
+      const response = await fetch("https://healthfitnessbackend.onrender.com/api/post-badge", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 4,
     borderLeftWidth: 5,
-    borderLeftColor: "#FFA500", // Orange accent
+    borderLeftColor: "#FFA500", 
   },
   title: { fontSize: 20, fontWeight: "bold", color: "#333" },
   description: { fontSize: 16, color: "#555", marginBottom: 5 },

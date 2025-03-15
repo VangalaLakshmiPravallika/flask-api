@@ -24,7 +24,7 @@ const WorkoutPlan = () => {
         Alert.alert("Login Required", "Please log in.");
         return;
       }
-      const response = await axios.get("https://flask-api-439a.onrender.com/api/get-fitness-level", {
+      const response = await axios.get("https://healthfitnessbackend.onrender.com/api/get-fitness-level", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setFitnessLevel(response.data.fitness_level);
@@ -38,7 +38,7 @@ const WorkoutPlan = () => {
   const fetchWorkoutPlan = async (level) => {
     try {
       const token = await AsyncStorage.getItem("authToken");
-      const response = await axios.get("https://flask-api-439a.onrender.com/api/workout-plan", {
+      const response = await axios.get("https://healthfitnessbackend.onrender.com/api/workout-plan", {
         headers: { Authorization: `Bearer ${token}` },
         params: { level },
       });
@@ -53,7 +53,7 @@ const WorkoutPlan = () => {
   const fetchProgress = async () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
-      const response = await axios.get("https://flask-api-439a.onrender.com/api/get-progress", {
+      const response = await axios.get("https://healthfitnessbackend.onrender.com/api/get-progress", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setCompletedDays(response.data.completed_days);
@@ -67,7 +67,7 @@ const WorkoutPlan = () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
       const response = await axios.post(
-        "https://flask-api-439a.onrender.com/api/track-progress",
+        "https://healthfitnessbackend.onrender.com/api/track-progress",
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

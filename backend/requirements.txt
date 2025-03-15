@@ -4,4 +4,6 @@ flask-jwt-extended
 bcrypt
 pymongo
 python-dotenv
-gunicorn 
+gunicorn
+pandas  
+openpyxl 

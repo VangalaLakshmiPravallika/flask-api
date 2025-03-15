@@ -17,6 +17,7 @@ load_dotenv()
 
 app=Flask(__name__)
 CORS(app)
+PORT = int(os.environ.get("PORT", 5000))
 
 MONGO_URI=os.getenv("MONGO_URI")
 client=MongoClient(MONGO_URI)
@@ -560,4 +561,4 @@ def test_read_excel():
         return jsonify({"status": "error", "message": str(e)})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001, debug=True)
+    app.run(host="0.0.0.0", port=PORT, debug=True)

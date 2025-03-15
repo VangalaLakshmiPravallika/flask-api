@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     flex: 1, 
     justifyContent: "center", 
     alignItems: "center", 
-    backgroundColor: "#E8F5E9", // 🌿 Soft pastel green
+    backgroundColor: "#E8F5E9",
     paddingHorizontal: 20
   },
   heading: { 
@@ -119,19 +119,19 @@ const styles = StyleSheet.create({
     color: "#333", 
     borderWidth: 1, 
     borderColor: "#B2DFDB", 
-    elevation: 3, // Adds subtle shadow
+    elevation: 3, 
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3
   },
   button: { 
-    backgroundColor: "#388E3C", // 🌱 Dark Green for Save Button
+    backgroundColor: "#388E3C", 
     paddingVertical: 12, 
     paddingHorizontal: 30, 
     borderRadius: 8, 
     marginTop: 10,
-    elevation: 4, // Adds button shadow
+    elevation: 4, 
   },
   buttonText: { 
     fontSize: 18, 

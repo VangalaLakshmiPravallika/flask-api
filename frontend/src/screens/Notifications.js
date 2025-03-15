@@ -13,7 +13,7 @@ const Notifications = () => {
   const fetchNotifications = async () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
-      const response = await axios.get("http://10.12.252.14/api/get-notifications", {
+      const response = await axios.get("https://flask-api-439a.onrender.com/api/get-notifications", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setNotifications(response.data);

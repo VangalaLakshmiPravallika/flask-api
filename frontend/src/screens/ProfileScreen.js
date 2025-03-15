@@ -66,7 +66,7 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E3F2FD", // Light Blue Background
+    backgroundColor: "#E3F2FD", 
     padding: 20,
   },
   scrollContainer: {
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 5,
-    elevation: 5, // Shadow for Android
+    elevation: 5, 
     alignItems: "center",
   },
   heading: {
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   },
   editButton: {
     marginTop: 20,
-    backgroundColor: "#4CAF50", // Green Edit Button
+    backgroundColor: "#4CAF50", 
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 25,

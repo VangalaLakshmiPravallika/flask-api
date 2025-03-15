@@ -114,37 +114,37 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     padding: 20, 
-    backgroundColor: "#E3F2FD" // Light blue background
+    backgroundColor: "#E3F2FD" 
   },
   title: { 
     fontSize: 26, 
     fontWeight: "bold", 
-    color: "#1A237E", // Deep Blue
+    color: "#1A237E", 
     textAlign: "center", 
     marginBottom: 15 
   },
   groupContainer: { 
     padding: 15, 
-    backgroundColor: "#FFEBEE", // Light pinkish background
+    backgroundColor: "#FFEBEE", 
     borderRadius: 12, 
     marginBottom: 10, 
     borderWidth: 1, 
     borderColor: "#D1D1E0",
-    elevation: 5, // Shadow for depth
+    elevation: 5, 
   },
   groupName: { 
     fontSize: 20, 
     fontWeight: "bold", 
-    color: "#880E4F" // Dark Pink
+    color: "#880E4F"
   },
   joinButton: {
-    backgroundColor: "#2196F3", // Bright blue
+    backgroundColor: "#2196F3", 
     padding: 12,
     borderRadius: 8,
     marginTop: 10,
   },
   joinedButton: {
-    backgroundColor: "#4CAF50", // Green for joined
+    backgroundColor: "#4CAF50", 
     padding: 12,
     borderRadius: 8,
     marginTop: 10,
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   postButton: {
-    backgroundColor: "#9C27B0", // Deep purple
+    backgroundColor: "#9C27B0", 
     padding: 12,
     borderRadius: 8,
     marginTop: 10,

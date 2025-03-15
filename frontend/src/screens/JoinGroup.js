@@ -19,7 +19,7 @@ const JoinGroup = () => {
 
   const fetchGroups = async () => {
     try {
-      const response = await axios.get("https://flask-api-439a.onrender.com/api/get-groups");
+      const response = await axios.get("https://healthfitnessbackend.onrender.com/api/get-groups");
       setGroups(response.data);
     } catch (error) {
       console.error("Error fetching groups:", error);
@@ -36,7 +36,7 @@ const JoinGroup = () => {
       }
 
       const response = await axios.get(
-        "https://flask-api-439a.onrender.com/api/get-user-groups",
+        "https://healthfitnessbackend.onrender.com/api/get-user-groups",
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -58,7 +58,7 @@ const JoinGroup = () => {
       }
 
       const response = await axios.post(
-        "https://flask-api-439a.onrender.com/api/join-group",
+        "https://healthfitnessbackend.onrender.com/api/join-group",
         { group_name: groupName },
         { headers: { Authorization: `Bearer ${token}` } }
       );

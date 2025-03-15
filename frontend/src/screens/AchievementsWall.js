@@ -35,7 +35,7 @@ const AchievementsWall = () => {
         return;
       }
 
-      const response = await fetch("https://flask-api-439a.onrender.com/api/get-achievements", {
+      const response = await fetch("https://healthfitnessbackend.onrender.com/api/get-achievements", {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
       });

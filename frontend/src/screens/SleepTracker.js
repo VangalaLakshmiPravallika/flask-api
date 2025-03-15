@@ -54,7 +54,7 @@ const SleepTracker = () => {
       }
 
       const response = await axios.post(
-        "https://flask-api-439a.onrender.com/api/log-sleep",
+        "https://healthfitnessbackend.onrender.com/api/log-sleep",
         {
           date: new Date().toISOString().split("T")[0],
           sleep_hours: sleepHours,

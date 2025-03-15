@@ -280,7 +280,7 @@ def load_food_data():
         return food_dict
 
     except Exception as e:
-        print(f"⚠️ Error loading food database: {e}")
+        print(f"⚠ Error loading food database: {e}")
         return {}
 
 food_database = load_food_data()
@@ -321,7 +321,7 @@ def log_meal():
                 total_carbs += food_info.get("Carbohydrates (g)", 0)
                 total_fats += food_info.get("Fats (g)", 0)
             else:
-                print(f"⚠️ Warning: '{food_item}' not found in database!")
+                print(f"⚠ Warning: '{food_item}' not found in database!")
 
     meal_entry = {
         "user": user_email,
@@ -368,7 +368,7 @@ def get_meals():
         return jsonify({"meals": meals, "overall_nutrition": total_nutrition}), 200
 
     except Exception as e:
-        print(f"⚠️ Error fetching meals: {e}")  
+        print(f"⚠ Error fetching meals: {e}")  
         return jsonify({"error": "Failed to load meals", "details": str(e)}), 500
 
 @app.route("/api/get-food-items", methods=["GET"])

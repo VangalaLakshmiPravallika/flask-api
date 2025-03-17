@@ -5,11 +5,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function StepCounter() {
   const [steps, setSteps] = useState(0);
-  const [lastX, setLastX] = useState(0);
-  const [lastY, setLastY] = useState(0);
-  const [lastZ, setLastZ] = useState(0);
+  const [weeklySteps, setWeeklySteps] = useState(0);
+  const [monthlySteps, setMonthlySteps] = useState(0);
+  const [lastAcceleration, setLastAcceleration] = useState({ x: 0, y: 0, z: 0 });
   const animatedSteps = useState(new Animated.Value(0))[0];
-  const threshold = 0.3; 
+  const threshold = 0.8; 
   const [userEmail, setUserEmail] = useState(null);
 
   useEffect(() => {
@@ -19,13 +19,18 @@ export default function StepCounter() {
     };
     fetchUserEmail();
     loadSteps();
+    fetchStepHistory();
   }, []);
 
   useEffect(() => {
-    Accelerometer.setUpdateInterval(100); 
+    Accelerometer.setUpdateInterval(50); 
 
     let subscription = Accelerometer.addListener(({ x, y, z }) => {
-      let delta = Math.sqrt((x - lastX) ** 2 + (y - lastY) ** 2 + (z - lastZ) ** 2);
+      let delta = Math.sqrt(
+        (x - lastAcceleration.x) ** 2 +
+        (y - lastAcceleration.y) ** 2 +
+        (z - lastAcceleration.z) ** 2
+      );
 
       if (delta > threshold) {
         updateSteps(steps + 1);
@@ -36,13 +41,12 @@ export default function StepCounter() {
         }).start();
       }
 
-      setLastX(x);
-      setLastY(y);
-      setLastZ(z);
+      setLastAcceleration({ x, y, z });
     });
 
     return () => subscription.remove();
-  }, [lastX, lastY, lastZ, steps]);
+  }, [lastAcceleration, steps]);
+
 
   const loadSteps = async () => {
     try {
@@ -51,18 +55,43 @@ export default function StepCounter() {
         setSteps(parseInt(storedSteps, 10));
         animatedSteps.setValue(parseInt(storedSteps, 10));
       }
-      if (userEmail) fetchStepsFromDB();
+      if (userEmail) fetchStepHistory();
     } catch (error) {
       console.error("Error loading steps:", error);
     }
   };
+
+
+  const fetchStepHistory = async () => {
+    try {
+      const response = await fetch(
+        "https://healthfitnessbackend.onrender.com/api/get-step-history",
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${await AsyncStorage.getItem("authToken")}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+      setSteps(data.daily || 0);
+      setWeeklySteps(data.weekly || 0);
+      setMonthlySteps(data.monthly || 0);
+      await AsyncStorage.setItem("steps", data.daily.toString());
+    } catch (error) {
+      console.error("Error fetching step history:", error);
+    }
+  };
+
 
   const updateSteps = async (newSteps) => {
     setSteps(newSteps);
     await AsyncStorage.setItem("steps", newSteps.toString());
 
     try {
-      await fetch("https://your-backend-url.onrender.com/api/update-steps", {
+      await fetch("https://healthfitnessbackend.onrender.com/api/update-steps", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -78,10 +107,16 @@ export default function StepCounter() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Step Counter</Text>
+
       <View style={styles.circle}>
         <Animated.Text style={styles.stepText}>{steps}</Animated.Text>
       </View>
-      <Text style={styles.subtitle}>Keep moving and stay active! 🚀</Text>
+
+      <Text style={styles.subtitle}>Daily: {steps} steps</Text>
+      <Text style={styles.subtitle}>Weekly: {weeklySteps} steps</Text>
+      <Text style={styles.subtitle}>Monthly: {monthlySteps} steps</Text>
+
+      <Text style={styles.footer}>Keep moving and stay active! 🚀</Text>
     </View>
   );
 }
@@ -92,4 +127,5 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 18, color: "#AFAFAF", marginTop: 10 },
   circle: { width: 150, height: 150, borderRadius: 75, backgroundColor: "#007bff", justifyContent: "center", alignItems: "center", elevation: 10, shadowColor: "#fff", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 8 },
   stepText: { fontSize: 36, fontWeight: "bold", color: "#fff" },
+  footer: { marginTop: 20, color: "#FFD700" },
 });

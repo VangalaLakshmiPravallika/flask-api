@@ -56,7 +56,7 @@ export default function StepCounter() {
   const fetchStepsFromDB = async () => {
     try {
       const response = await fetch(
-        "https://your-backend-url.onrender.com/api/get-step-history",
+        "https://healthfitnessbackend.onrender.com/api/get-step-history",
         {
           method: "GET",
           headers: {

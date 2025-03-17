@@ -26,7 +26,7 @@ export default function StepHistory({ navigation }) {
       const token = await AsyncStorage.getItem("authToken");
       if (!token) throw new Error("User not authenticated");
 
-      const response = await fetch("https://your-backend-url.onrender.com/api/get-step-history", {
+      const response = await fetch("https://healthfitnessbackend.onrender.com/api/get-step-history", {
         method: "GET",
         headers: { "Authorization": `Bearer ${token}` },
       });

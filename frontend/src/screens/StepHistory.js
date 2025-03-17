@@ -31,13 +31,15 @@ export default function StepHistory({ navigation }) {
         headers: { "Authorization": `Bearer ${token}` },
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Server error");
-      }
+      const responseText = await response.text();  // Read raw response
+      if (!response.ok) throw new Error(`Server error: ${responseText}`);
 
-      const data = await response.json();
-      setStepData(data);
+      const data = JSON.parse(responseText);
+      setStepData({
+        daily: data.daily || 0,
+        weekly: data.weekly || 0,
+        monthly: data.monthly || 0
+      });
 
       // Smooth animation on load
       Animated.timing(animatedOpacity, {

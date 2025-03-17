@@ -5,6 +5,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function StepCounter() {
   const [steps, setSteps] = useState(0);
+  const [weeklySteps, setWeeklySteps] = useState(0);
+  const [monthlySteps, setMonthlySteps] = useState(0);
   const [lastZ, setLastZ] = useState(0);
   const animatedSteps = useState(new Animated.Value(0))[0];
   const threshold = 1.2;
@@ -36,6 +38,7 @@ export default function StepCounter() {
     return () => subscription.remove();
   }, [lastZ, steps]);
 
+  /** ✅ Load Steps & Reset at Midnight **/
   const loadSteps = async () => {
     try {
       const storedSteps = await AsyncStorage.getItem("steps");
@@ -43,16 +46,17 @@ export default function StepCounter() {
         setSteps(parseInt(storedSteps, 10));
         animatedSteps.setValue(parseInt(storedSteps, 10));
       }
-      if (userEmail) fetchStepsFromDB(userEmail);
+      if (userEmail) fetchStepsFromDB();
     } catch (error) {
       console.error("Error loading steps:", error);
     }
   };
 
-  const fetchStepsFromDB = async (email) => {
+  /** ✅ Fetch Steps from MongoDB **/
+  const fetchStepsFromDB = async () => {
     try {
       const response = await fetch(
-        `https://your-backend-url.onrender.com/api/get-steps`,
+        "https://your-backend-url.onrender.com/api/get-step-history",
         {
           method: "GET",
           headers: {
@@ -63,16 +67,16 @@ export default function StepCounter() {
       );
 
       const data = await response.json();
-      if (data.steps !== undefined) {
-        setSteps(data.steps);
-        animatedSteps.setValue(data.steps);
-        await AsyncStorage.setItem("steps", data.steps.toString());
-      }
+      setSteps(data.daily_steps);
+      setWeeklySteps(data.weekly_steps);
+      setMonthlySteps(data.monthly_steps);
+      await AsyncStorage.setItem("steps", data.daily_steps.toString());
     } catch (error) {
       console.error("Error fetching steps:", error);
     }
   };
 
+  /** ✅ Update Steps and Store in MongoDB **/
   const updateSteps = async (newSteps) => {
     setSteps(newSteps);
     await AsyncStorage.setItem("steps", newSteps.toString());
@@ -96,16 +100,14 @@ export default function StepCounter() {
       <Text style={styles.title}>Step Counter</Text>
 
       <View style={styles.circle}>
-        <Animated.Text style={styles.stepText}>
-          {animatedSteps.interpolate({
-            inputRange: [0, steps],
-            outputRange: [0, steps],
-            extrapolate: "clamp",
-          })}
-        </Animated.Text>
+        <Animated.Text style={styles.stepText}>{steps}</Animated.Text>
       </View>
 
-      <Text style={styles.subtitle}>Keep moving and stay active! 🚀</Text>
+      <Text style={styles.subtitle}>Daily: {steps} steps</Text>
+      <Text style={styles.subtitle}>Weekly: {weeklySteps} steps</Text>
+      <Text style={styles.subtitle}>Monthly: {monthlySteps} steps</Text>
+
+      <Text style={styles.footer}>Keep moving and stay active! 🚀</Text>
     </View>
   );
 }
@@ -113,7 +115,8 @@ export default function StepCounter() {
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#1E1E2C", padding: 20 },
   title: { fontSize: 30, fontWeight: "bold", color: "#FFD700", marginBottom: 20, textTransform: "uppercase" },
-  subtitle: { fontSize: 18, color: "#AFAFAF", marginTop: 20 },
+  subtitle: { fontSize: 18, color: "#AFAFAF", marginTop: 10 },
   circle: { width: 150, height: 150, borderRadius: 75, backgroundColor: "#007bff", justifyContent: "center", alignItems: "center", elevation: 10, shadowColor: "#fff", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 8 },
   stepText: { fontSize: 36, fontWeight: "bold", color: "#fff" },
+  footer: { marginTop: 20, color: "#FFD700" },
 });

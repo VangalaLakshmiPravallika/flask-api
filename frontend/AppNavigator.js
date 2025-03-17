@@ -19,6 +19,7 @@ import WorkoutPlan from "./src/screens/WorkoutPlan";
 import ProgressTracker from "./src/screens/ProgressTracker";
 import SoothingMusic from "./src/screens/SoothingMusic";
 import StepCounter from "./src/screens/StepCounter";
+import StepHistory from "./src/screens/StepHistory"; 
 const Stack = createStackNavigator();
 
 export default function AppNavigator() {
@@ -53,6 +54,7 @@ export default function AppNavigator() {
         <Stack.Screen name="FitnessAssessment" component={FitnessAssessment} options={{ title:"Fitness Assessment" }} />
         <Stack.Screen name="WorkoutPlan" component={WorkoutPlan} options={{ title:"Workout Plan" }} />
         <Stack.Screen name="ProgressTracker" component={ProgressTracker} options={{ title:"Progress Tracker" }} />
+        <Stack.Screen name="StepHistory" component={StepHistory} options={{ title: "Step History" }} />
 
         <Stack.Screen name="SoothingMusic" component={SoothingMusic} options={{ title:"Soothing Music" }} />
 

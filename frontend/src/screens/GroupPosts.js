@@ -67,6 +67,24 @@ const GroupPosts = () => {
     }
   };
 
+  const dislikePost = async (postContent) => {
+    try {
+      await axios.post(
+        "https://healthfitnessbackend.onrender.com/api/dislike-post",
+        { group_name: group, post_content: postContent },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setPosts((prevPosts) =>
+        prevPosts.map((post) =>
+          post.content === postContent ? { ...post, likes: post.likes - 1 } : post
+        )
+      );
+    } catch (error) {
+      Alert.alert("⚠️ Error", "Failed to dislike post.");
+    }
+  };
+
   const addComment = async (postContent) => {
     const commentText = commentTexts[postContent] || "";
     if (!commentText.trim()) {
@@ -95,6 +113,26 @@ const GroupPosts = () => {
     }
   };
 
+  const removeComment = async (postContent, commentText) => {
+    try {
+      await axios.post(
+        "https://healthfitnessbackend.onrender.com/api/remove-comment",
+        { group_name: group, post_content: postContent, comment: commentText },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setPosts((prevPosts) =>
+        prevPosts.map((post) =>
+          post.content === postContent
+            ? { ...post, comments: post.comments.filter((c) => c.text !== commentText) }
+            : post
+        )
+      );
+    } catch (error) {
+      Alert.alert("⚠️ Error", "Failed to remove comment.");
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.header}>{group} - Posts</Text>
@@ -118,9 +156,8 @@ const GroupPosts = () => {
                 <TouchableOpacity style={styles.likeButton} onPress={() => likePost(item.content)}>
                   <Text style={styles.buttonText}>👍 Like</Text>
                 </TouchableOpacity>
-
-                <TouchableOpacity style={styles.commentButton} onPress={() => addComment(item.content)}>
-                  <Text style={styles.buttonText}>💬 Comment</Text>
+                <TouchableOpacity style={styles.dislikeButton} onPress={() => dislikePost(item.content)}>
+                  <Text style={styles.buttonText}>👎 Dislike</Text>
                 </TouchableOpacity>
               </View>
 
@@ -134,8 +171,13 @@ const GroupPosts = () => {
               <FlatList
                 data={item.comments}
                 keyExtractor={(cmt, index) => index.toString()}
-                renderItem={({ item }) => (
-                  <Text style={styles.comment}>🗨 {item.user}: {item.text}</Text>
+                renderItem={({ item: comment }) => (
+                  <View style={styles.commentRow}>
+                    <Text style={styles.comment}>🗨 {comment.user}: {comment.text}</Text>
+                    <TouchableOpacity onPress={() => removeComment(item.content, comment.text)}>
+                      <Text style={styles.removeCommentText}>❌</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
               />
             </View>
@@ -145,87 +187,3 @@ const GroupPosts = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 15,
-    backgroundColor: "#f8f9fa",
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333",
-    textAlign: "center",
-    marginBottom: 15,
-  },
-  noPosts: {
-    textAlign: "center",
-    fontSize: 18,
-    color: "#888",
-  },
-  card: {
-    backgroundColor: "#ADD8E6",
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  user: {
-    fontWeight: "bold",
-    fontSize: 16,
-    color: "#007bff",
-  },
-  content: {
-    fontSize: 15,
-    marginVertical: 5,
-    color: "#333",
-  },
-  likes: {
-    fontSize: 14,
-    color: "#888",
-    marginBottom: 5,
-  },
-  buttonRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 5,
-  },
-  likeButton: {
-    backgroundColor: "#28a745",
-    padding: 8,
-    borderRadius: 5,
-    flex: 1,
-    marginRight: 5,
-  },
-  commentButton: {
-    backgroundColor: "#007bff",
-    padding: 8,
-    borderRadius: 5,
-    flex: 1,
-    marginLeft: 5,
-  },
-  buttonText: {
-    color: "#fff",
-    textAlign: "center",
-    fontWeight: "bold",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 5,
-    padding: 8,
-    marginTop: 8,
-    backgroundColor: "#fff",
-  },
-  comment: {
-    fontSize: 14,
-    color: "#555",
-    marginTop: 5,
-  },
-});
-
-export default GroupPosts;

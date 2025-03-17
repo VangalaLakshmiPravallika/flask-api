@@ -89,7 +89,8 @@ const HomeScreen = () => {
           "WorkoutPlan", 
           "ProgressTracker", 
           "Profile",
-          "StepCounter"  
+          "StepCounter",
+          "StepHistory"  
         ].map((screen, index) => (
           <TouchableOpacity key={index} style={styles.menuItem} onPress={() => navigation.navigate(screen)}>
             <Text style={styles.menuText}>{screen.replace(/([A-Z])/g, " $1").trim()}</Text>

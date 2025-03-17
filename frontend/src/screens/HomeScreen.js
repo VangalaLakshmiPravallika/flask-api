@@ -75,6 +75,8 @@ const HomeScreen = () => {
 
       {/* Animated Sidebar Menu */}
       <Animated.View style={[styles.menuContainer, { transform: [{ translateX: slideAnim }] }]}>
+
+        {/* Close Button */}
         <TouchableOpacity style={styles.closeButton} onPress={() => setMenuVisible(false)}>
           <Ionicons name="close" size={30} color="#fff" />
         </TouchableOpacity>
@@ -90,12 +92,14 @@ const HomeScreen = () => {
           "ProgressTracker", 
           "Profile",
           "StepCounter",
-          "StepHistory"  
+          "StepHistory",
+          "ChatBot" // ✅ Added ChatBot option
         ].map((screen, index) => (
           <TouchableOpacity key={index} style={styles.menuItem} onPress={() => navigation.navigate(screen)}>
             <Text style={styles.menuText}>{screen.replace(/([A-Z])/g, " $1").trim()}</Text>
           </TouchableOpacity>
         ))}
+
       </Animated.View>
 
       {/* Main Content */}

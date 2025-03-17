@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { 
-  View, Text, FlatList, Alert, TouchableOpacity, ActivityIndicator, TextInput, ScrollView, StyleSheet 
+  View, Text, FlatList, Alert, TouchableOpacity, ActivityIndicator, TextInput, StyleSheet 
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
@@ -56,7 +56,6 @@ const GroupPosts = () => {
         { group_name: group, post_content: postContent },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       setPosts((prevPosts) =>
         prevPosts.map((post) =>
           post.content === postContent ? { ...post, likes: post.likes + 1 } : post
@@ -74,7 +73,6 @@ const GroupPosts = () => {
         { group_name: group, post_content: postContent },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       setPosts((prevPosts) =>
         prevPosts.map((post) =>
           post.content === postContent ? { ...post, likes: post.likes - 1 } : post
@@ -91,14 +89,12 @@ const GroupPosts = () => {
       Alert.alert("⚠️ Error", "Comment cannot be empty.");
       return;
     }
-
     try {
       await axios.post(
         "https://healthfitnessbackend.onrender.com/api/comment-post",
         { group_name: group, post_content: postContent, comment: commentText },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       setPosts((prevPosts) =>
         prevPosts.map((post) =>
           post.content === postContent
@@ -106,7 +102,6 @@ const GroupPosts = () => {
             : post
         )
       );
-
       setCommentTexts((prev) => ({ ...prev, [postContent]: "" }));
     } catch (error) {
       Alert.alert("⚠️ Error", "Failed to add comment.");
@@ -120,7 +115,6 @@ const GroupPosts = () => {
         { group_name: group, post_content: postContent, comment: commentText },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       setPosts((prevPosts) =>
         prevPosts.map((post) =>
           post.content === postContent
@@ -136,16 +130,12 @@ const GroupPosts = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>{group} - Posts</Text>
-
       {loading ? (
         <ActivityIndicator size="large" color="#007bff" />
-      ) : posts.length === 0 ? (
-        <Text style={styles.noPosts}>No posts yet!</Text>
       ) : (
         <FlatList
           data={posts}
           keyExtractor={(item, index) => index.toString()}
-          contentContainerStyle={{ paddingBottom: 50 }}
           renderItem={({ item }) => (
             <View style={styles.card}>
               <Text style={styles.user}>{item.user}</Text>
@@ -167,6 +157,9 @@ const GroupPosts = () => {
                 onChangeText={(text) => setCommentTexts((prev) => ({ ...prev, [item.content]: text }))}
                 style={styles.input}
               />
+              <TouchableOpacity style={styles.commentButton} onPress={() => addComment(item.content)}>
+                <Text style={styles.buttonText}>💬 Add Comment</Text>
+              </TouchableOpacity>
 
               <FlatList
                 data={item.comments}
@@ -187,3 +180,47 @@ const GroupPosts = () => {
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 15,
+    backgroundColor: "#f8f9fa",
+  },
+  header: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#333",
+    textAlign: "center",
+    marginBottom: 15,
+  },
+  card: {
+    backgroundColor: "#ADD8E6",
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 10,
+    elevation: 3,
+  },
+  user: {
+    fontWeight: "bold",
+    fontSize: 16,
+    color: "#007bff",
+  },
+  content: {
+    fontSize: 15,
+    marginVertical: 5,
+    color: "#333",
+  },
+  likes: {
+    fontSize: 14,
+    color: "#888",
+    marginBottom: 5,
+  },
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 5,
+  },
+});
+
+export default GroupPosts;

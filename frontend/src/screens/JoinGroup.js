@@ -71,6 +71,28 @@ const JoinGroup = () => {
     }
   };
 
+  const leaveGroup = async (groupName) => {
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        Alert.alert("⚠️ Login Required", "Please log in.");
+        return;
+      }
+
+      const response = await axios.post(
+        "https://healthfitnessbackend.onrender.com/api/leave-group",
+        { group_name: groupName },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      Alert.alert("✅ Success", response.data.message);
+      setUserGroups(userGroups.filter(group => group !== groupName));
+    } catch (error) {
+      console.error("Error leaving group:", error.response?.data);
+      Alert.alert("⚠️ Error", error.response?.data?.error || "Could not leave group");
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>🌟 Join a Group 🌟</Text>
@@ -85,22 +107,28 @@ const JoinGroup = () => {
           renderItem={({ item }) => (
             <View style={styles.groupContainer}>
               <Text style={styles.groupName}>{item.name}</Text>
-              <TouchableOpacity
-                style={userGroups.includes(item.name) ? styles.joinedButton : styles.joinButton}
-                onPress={() => joinGroup(item.name)}
-                disabled={userGroups.includes(item.name)}
-              >
-                <Text style={styles.buttonText}>
-                  {userGroups.includes(item.name) ? "Joined ✅" : "Join"}
-                </Text>
-              </TouchableOpacity>
-              {userGroups.includes(item.name) && (
-                <TouchableOpacity 
-                  style={styles.postButton} 
-                  onPress={() => navigation.navigate("PostAchievement", { group: item.name })}
+              {!userGroups.includes(item.name) ? (
+                <TouchableOpacity
+                  style={styles.joinButton}
+                  onPress={() => joinGroup(item.name)}
                 >
-                  <Text style={styles.postButtonText}>📢 Post Achievement</Text>
+                  <Text style={styles.buttonText}>Join</Text>
                 </TouchableOpacity>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={styles.joinedButton}
+                    onPress={() => leaveGroup(item.name)}
+                  >
+                    <Text style={styles.buttonText}>Leave ❌</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.postButton} 
+                    onPress={() => navigation.navigate("PostAchievement", { group: item.name })}
+                  >
+                    <Text style={styles.postButtonText}>📢 Post Achievement</Text>
+                  </TouchableOpacity>
+                </>
               )}
             </View>
           )}
@@ -144,7 +172,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   joinedButton: {
-    backgroundColor: "#4CAF50", 
+    backgroundColor: "#F44336", 
     padding: 12,
     borderRadius: 8,
     marginTop: 10,

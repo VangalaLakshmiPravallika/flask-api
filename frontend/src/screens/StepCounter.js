@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Animated } from "react-native";
+import { View, Text, StyleSheet, Animated, Dimensions, ImageBackground } from "react-native";
 import { Accelerometer } from "expo-sensors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function StepCounter({ route }) {
   const [steps, setSteps] = useState(0);
@@ -100,28 +101,155 @@ export default function StepCounter({ route }) {
     }
   };
 
+  const dailyGoal = 10000;
+  const progressPercentage = Math.min((steps / dailyGoal) * 100, 100);
+  
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Step Counter</Text>
-
-      <View style={styles.circle}>
-        <Animated.Text style={styles.stepText}>{steps}</Animated.Text>
+    <LinearGradient
+      colors={['#1A2151', '#1E1E2C', '#0D0D1A']}
+      style={styles.container}
+    >
+      <Text style={styles.title}>Step Tracker</Text>
+      
+      <View style={styles.circleContainer}>
+        <View style={styles.progressBackground}>
+          <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
+        </View>
+        
+        <View style={styles.mainCircle}>
+          <Animated.Text style={styles.stepText}>{steps}</Animated.Text>
+          <Text style={styles.stepsLabel}>steps</Text>
+          <Text style={styles.goalText}>Goal: {dailyGoal}</Text>
+        </View>
       </View>
 
-      <Text style={styles.subtitle}>🔹 Daily: {steps} steps</Text>
-      <Text style={styles.subtitle}>📅 Weekly: {weeklySteps} steps</Text>
-      <Text style={styles.subtitle}>📆 Monthly: {monthlySteps} steps</Text>
+      <View style={styles.statsContainer}>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{steps}</Text>
+          <Text style={styles.statLabel}>TODAY</Text>
+        </View>
+        
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{weeklySteps}</Text>
+          <Text style={styles.statLabel}>THIS WEEK</Text>
+        </View>
+        
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{monthlySteps}</Text>
+          <Text style={styles.statLabel}>THIS MONTH</Text>
+        </View>
+      </View>
 
-      <Text style={styles.footer}>Keep moving and stay active! 🚀</Text>
-    </View>
+      <View style={styles.motivationCard}>
+        <Text style={styles.motivationText}>
+          {steps < 5000 ? "Keep moving! You're making progress! 🚶" : 
+           steps < 10000 ? "Great job! You're halfway to your goal! 🏃" : 
+           "Amazing! You've crushed your goal today! 🏆"}
+        </Text>
+      </View>
+    </LinearGradient>
   );
 }
 
+const { width } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#1E1E2C", padding: 20 },
-  title: { fontSize: 30, fontWeight: "bold", color: "#FFD700", marginBottom: 20, textTransform: "uppercase" },
-  subtitle: { fontSize: 18, color: "#AFAFAF", marginTop: 10 },
-  circle: { width: 150, height: 150, borderRadius: 75, backgroundColor: "#007bff", justifyContent: "center", alignItems: "center", elevation: 10, shadowColor: "#fff", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 8 },
-  stepText: { fontSize: 36, fontWeight: "bold", color: "#fff" },
-  footer: { marginTop: 20, color: "#FFD700" },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+    marginBottom: 30,
+    letterSpacing: 1,
+  },
+  circleContainer: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  progressBackground: {
+    width: width * 0.8,
+    height: 8,
+    backgroundColor: '#2A2A40',
+    borderRadius: 4,
+    marginBottom: 20,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#4CAF50',
+  },
+  mainCircle: {
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(25, 118, 210, 0.8)',
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 10,
+    shadowColor: "#6D9BF1",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    borderWidth: 2,
+    borderColor: '#6D9BF1',
+  },
+  stepText: {
+    fontSize: 48,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+  },
+  stepsLabel: {
+    fontSize: 16,
+    color: "#E0E0E0",
+    marginTop: -5,
+  },
+  goalText: {
+    fontSize: 14,
+    color: "#B0C4DE",
+    marginTop: 8,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 20,
+  },
+  statCard: {
+    backgroundColor: 'rgba(30, 30, 50, 0.7)',
+    borderRadius: 12,
+    padding: 15,
+    width: '30%',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#3D3D5C',
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#9090A0',
+    marginTop: 5,
+  },
+  motivationCard: {
+    backgroundColor: 'rgba(40, 40, 60, 0.7)',
+    borderRadius: 12,
+    padding: 15,
+    width: '100%',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#3D3D5C',
+  },
+  motivationText: {
+    fontSize: 16,
+    color: '#FFD700',
+    textAlign: 'center',
+  },
 });

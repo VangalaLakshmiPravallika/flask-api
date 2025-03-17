@@ -29,6 +29,7 @@ groups_collection=db.groups
 meal_collection=db.meals
 badges_collection=db.badges
 progress_collection=db.progress
+steps_collection = db.steps
 
 app.config["JWT_SECRET_KEY"]=os.getenv("JWT_SECRET_KEY")
 jwt = JWTManager(app)
@@ -71,6 +72,22 @@ def login():
         return jsonify({"message":"Login successful","token":token}),200
 
     return jsonify({"error":"Invalid email or password"}),401
+
+@app.route("/api/log-steps", methods=["POST"])
+def log_steps():
+    data = request.json
+    steps = data.get("steps")
+    timestamp = data.get("timestamp", datetime.utcnow().isoformat())
+
+    if steps is None:
+        return jsonify({"error": "Steps value is required"}), 400
+
+    steps_collection.insert_one({
+        "steps": steps,
+        "timestamp": timestamp
+    })
+
+    return jsonify({"message": "Steps logged successfully", "steps": steps}), 201
 
 @app.route("/api/log-sleep", methods=["POST"])
 @jwt_required()

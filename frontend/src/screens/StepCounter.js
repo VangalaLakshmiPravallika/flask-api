@@ -5,11 +5,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function StepCounter() {
   const [steps, setSteps] = useState(0);
-  const [weeklySteps, setWeeklySteps] = useState(0);
-  const [monthlySteps, setMonthlySteps] = useState(0);
+  const [lastX, setLastX] = useState(0);
+  const [lastY, setLastY] = useState(0);
   const [lastZ, setLastZ] = useState(0);
   const animatedSteps = useState(new Animated.Value(0))[0];
-  const threshold = 1.2;
+  const threshold = 0.3; 
   const [userEmail, setUserEmail] = useState(null);
 
   useEffect(() => {
@@ -22,9 +22,12 @@ export default function StepCounter() {
   }, []);
 
   useEffect(() => {
+    Accelerometer.setUpdateInterval(100); 
+
     let subscription = Accelerometer.addListener(({ x, y, z }) => {
-      let deltaZ = Math.abs(z - lastZ);
-      if (deltaZ > threshold) {
+      let delta = Math.sqrt((x - lastX) ** 2 + (y - lastY) ** 2 + (z - lastZ) ** 2);
+
+      if (delta > threshold) {
         updateSteps(steps + 1);
         Animated.timing(animatedSteps, {
           toValue: steps + 1,
@@ -32,13 +35,15 @@ export default function StepCounter() {
           useNativeDriver: false,
         }).start();
       }
+
+      setLastX(x);
+      setLastY(y);
       setLastZ(z);
     });
 
     return () => subscription.remove();
-  }, [lastZ, steps]);
+  }, [lastX, lastY, lastZ, steps]);
 
-  /** ✅ Load Steps & Reset at Midnight **/
   const loadSteps = async () => {
     try {
       const storedSteps = await AsyncStorage.getItem("steps");
@@ -52,31 +57,6 @@ export default function StepCounter() {
     }
   };
 
-  /** ✅ Fetch Steps from MongoDB **/
-  const fetchStepsFromDB = async () => {
-    try {
-      const response = await fetch(
-        "https://healthfitnessbackend.onrender.com/api/get-step-history",
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${await AsyncStorage.getItem("authToken")}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-      setSteps(data.daily_steps);
-      setWeeklySteps(data.weekly_steps);
-      setMonthlySteps(data.monthly_steps);
-      await AsyncStorage.setItem("steps", data.daily_steps.toString());
-    } catch (error) {
-      console.error("Error fetching steps:", error);
-    }
-  };
-
-  /** ✅ Update Steps and Store in MongoDB **/
   const updateSteps = async (newSteps) => {
     setSteps(newSteps);
     await AsyncStorage.setItem("steps", newSteps.toString());
@@ -98,16 +78,10 @@ export default function StepCounter() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Step Counter</Text>
-
       <View style={styles.circle}>
         <Animated.Text style={styles.stepText}>{steps}</Animated.Text>
       </View>
-
-      <Text style={styles.subtitle}>Daily: {steps} steps</Text>
-      <Text style={styles.subtitle}>Weekly: {weeklySteps} steps</Text>
-      <Text style={styles.subtitle}>Monthly: {monthlySteps} steps</Text>
-
-      <Text style={styles.footer}>Keep moving and stay active! 🚀</Text>
+      <Text style={styles.subtitle}>Keep moving and stay active! 🚀</Text>
     </View>
   );
 }
@@ -118,5 +92,4 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 18, color: "#AFAFAF", marginTop: 10 },
   circle: { width: 150, height: 150, borderRadius: 75, backgroundColor: "#007bff", justifyContent: "center", alignItems: "center", elevation: 10, shadowColor: "#fff", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 8 },
   stepText: { fontSize: 36, fontWeight: "bold", color: "#fff" },
-  footer: { marginTop: 20, color: "#FFD700" },
 });

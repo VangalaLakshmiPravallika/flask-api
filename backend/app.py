@@ -73,21 +73,33 @@ def login():
 
     return jsonify({"error":"Invalid email or password"}),401
 
-@app.route("/api/log-steps", methods=["POST"])
-def log_steps():
+@app.route("/api/update-steps", methods=["POST"])
+@jwt_required()
+def update_steps():
     data = request.json
-    steps = data.get("steps")
-    timestamp = data.get("timestamp", datetime.utcnow().isoformat())
+    user_email = get_jwt_identity()
+    new_steps = data.get("steps")
 
-    if steps is None:
+    if new_steps is None:
         return jsonify({"error": "Steps value is required"}), 400
 
-    steps_collection.insert_one({
-        "steps": steps,
-        "timestamp": timestamp
-    })
+    steps_collection.update_one(
+        {"email": user_email},
+        {"$set": {"steps": new_steps}},
+        upsert=True
+    )
 
-    return jsonify({"message": "Steps logged successfully", "steps": steps}), 201
+    return jsonify({"message": "Steps updated successfully!"}), 200
+
+@app.route("/api/get-steps", methods=["GET"])
+@jwt_required()
+def get_steps():
+    user_email = get_jwt_identity()
+
+    user_steps = steps_collection.find_one({"email": user_email})
+
+    return jsonify({"steps": user_steps["steps"] if user_steps else 0})
+
 
 @app.route("/api/log-sleep", methods=["POST"])
 @jwt_required()

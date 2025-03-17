@@ -20,7 +20,8 @@ import ProgressTracker from "./src/screens/ProgressTracker";
 import SoothingMusic from "./src/screens/SoothingMusic";
 import StepCounter from "./src/screens/StepCounter";
 import StepHistory from "./src/screens/StepHistory"; 
-import ChatBotScreen from "../screens/ChatBotScreen"; 
+import ChatBotScreen from "./src/screens/ChatBotScreen";
+
 const Stack = createStackNavigator();
 
 export default function AppNavigator() {

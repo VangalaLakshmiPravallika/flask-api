@@ -1,5 +1,21 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
+import React, { useState, useRef, useEffect } from "react";
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  FlatList, 
+  StyleSheet, 
+  ScrollView,
+  SafeAreaView,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform
+} from "react-native";
+
+// Import vector icons for React Native - this requires installing:
+// npm install react-native-vector-icons
+// And linking: npx react-native link react-native-vector-icons
+import Icon from 'react-native-vector-icons/Feather';
 
 const qaPairs = {
   "What are the benefits of good sleep?":
@@ -19,101 +35,452 @@ const qaPairs = {
   "Exit": "Goodbye! Sleep well and take care."
 };
 
+// Map questions to their respective icons
+const questionIcons = {
+  "What are the benefits of good sleep?": "moon",
+  "How many hours of sleep do I need?": "clock",
+  "What are some tips for better sleep?": "zap",
+  "What happens if I don't get enough sleep?": "activity",
+  "How can I fall asleep faster?": "fast-forward",
+  "Can naps help improve sleep quality?": "coffee",
+  "What foods help with sleep?": "apple",
+  "Exit": "log-out"
+};
+
 const ChatBotScreen = () => {
   const [messages, setMessages] = useState([
-    { text: "Hello! Ask me anything about sleep wellness. Type 'Exit' to quit.", sender: "bot" },
+    { text: "Hello! I'm your Sleep Wellness Assistant. How can I help you today? Tap on a question or type your own.", sender: "bot" },
   ]);
-  const [input, setInput] = useState("");
+  const [customQuestion, setCustomQuestion] = useState("");
+  const [activeTab, setActiveTab] = useState("chat");
+  const flatListRef = useRef(null);
 
-  const sendMessage = () => {
-    if (input.trim() === "") return;
+  // Auto-scroll to the bottom when new messages are added
+  useEffect(() => {
+    if (flatListRef.current && messages.length > 0) {
+      setTimeout(() => {
+        flatListRef.current.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages]);
 
-    const userMessage = { text: input, sender: "user" };
-    const botResponse = {
-      text: qaPairs[input] || "I'm not sure about that. Try asking something else related to sleep wellness.",
-      sender: "bot"
-    };
+  const handleQuestionSelection = (question) => {
+    const userMessage = { text: question, sender: "user" };
+    const botResponse = { text: qaPairs[question] || "I don't have an answer for that specific question yet. Please try another question about sleep wellness.", sender: "bot" };
 
     setMessages([...messages, userMessage, botResponse]);
-    setInput("");
+
+    // If "Exit" is selected, clear messages after a short delay
+    if (question === "Exit") {
+      setTimeout(() => setMessages([{ text: "Hello! I'm your Sleep Wellness Assistant. How can I help you today? Tap on a question or type your own.", sender: "bot" }]), 2000);
+    }
+  };
+
+  const handleCustomQuestion = () => {
+    if (customQuestion.trim() === "") return;
+    
+    // Look for closest match in qaPairs or provide a default response
+    let bestMatch = "I don't have an answer for that specific question yet. Please try one of the suggested questions about sleep wellness.";
+    let matchFound = false;
+    
+    Object.keys(qaPairs).forEach(question => {
+      if (question !== "Exit" && customQuestion.toLowerCase().includes(question.toLowerCase().slice(0, 5))) {
+        bestMatch = qaPairs[question];
+        matchFound = true;
+      }
+    });
+    
+    const userMessage = { text: customQuestion, sender: "user" };
+    const botResponse = { text: bestMatch, sender: "bot" };
+    
+    setMessages([...messages, userMessage, botResponse]);
+    setCustomQuestion("");
+  };
+
+  // Format timestamp for messages
+  const getTimeStamp = () => {
+    const now = new Date();
+    return `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
-      <FlatList
-        data={messages}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item }) => (
-          <View style={[styles.message, item.sender === "user" ? styles.userMessage : styles.botMessage]}>
-            <Text style={styles.messageText}>{item.text}</Text>
-          </View>
-        )}
-      />
-
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Ask me about sleep..."
-          value={input}
-          onChangeText={setInput}
-        />
-        <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-          <Text style={styles.sendButtonText}>Send</Text>
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Icon name="moon" size={24} color="#4361EE" />
+        <Text style={styles.headerTitle}>Sleep Wellness Assistant</Text>
+      </View>
+      
+      {/* Navigation Tabs */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === "chat" && styles.activeTab]} 
+          onPress={() => setActiveTab("chat")}
+        >
+          <Icon name="message-circle" size={20} color={activeTab === "chat" ? "#4361EE" : "#555"} />
+          <Text style={[styles.tabText, activeTab === "chat" && styles.activeTabText]}>Chat</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === "home" && styles.activeTab]} 
+          onPress={() => setActiveTab("home")}
+        >
+          <Icon name="home" size={20} color={activeTab === "home" ? "#4361EE" : "#555"} />
+          <Text style={[styles.tabText, activeTab === "home" && styles.activeTabText]}>Topics</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === "profile" && styles.activeTab]} 
+          onPress={() => setActiveTab("profile")}
+        >
+          <Icon name="user" size={20} color={activeTab === "profile" ? "#4361EE" : "#555"} />
+          <Text style={[styles.tabText, activeTab === "profile" && styles.activeTabText]}>Profile</Text>
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+      
+      {/* Main Content Area */}
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.contentContainer}
+        keyboardVerticalOffset={90}
+      >
+        {activeTab === "chat" && (
+          <>
+            {/* Chat History */}
+            <FlatList
+              ref={flatListRef}
+              data={messages}
+              style={styles.messagesList}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={({ item }) => (
+                <View style={[styles.messageRow, item.sender === "user" ? styles.userMessageRow : styles.botMessageRow]}>
+                  {item.sender === "bot" && (
+                    <View style={styles.botAvatar}>
+                      <Icon name="moon" size={16} color="#fff" />
+                    </View>
+                  )}
+                  <View style={[styles.message, item.sender === "user" ? styles.userMessage : styles.botMessage]}>
+                    <Text style={[styles.messageText, item.sender === "user" ? styles.userMessageText : styles.botMessageText]}>
+                      {item.text}
+                    </Text>
+                    <Text style={styles.timestamp}>{getTimeStamp()}</Text>
+                  </View>
+                  {item.sender === "user" && (
+                    <View style={styles.userAvatar}>
+                      <Icon name="user" size={16} color="#fff" />
+                    </View>
+                  )}
+                </View>
+              )}
+            />
+
+            {/* Quick Question Chips */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipContainer}>
+              {Object.keys(qaPairs).slice(0, 4).map((question, index) => {
+                const iconName = questionIcons[question];
+                return (
+                  <TouchableOpacity 
+                    key={index} 
+                    style={styles.chip} 
+                    onPress={() => handleQuestionSelection(question)}
+                  >
+                    <Icon name={iconName} size={16} color="#4361EE" />
+                    <Text style={styles.chipText}>{question.length > 20 ? question.substring(0, 18) + '...' : question}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* Input Area */}
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Ask about sleep..."
+                value={customQuestion}
+                onChangeText={setCustomQuestion}
+                onSubmitEditing={handleCustomQuestion}
+              />
+              <TouchableOpacity style={styles.sendButton} onPress={handleCustomQuestion}>
+                <Icon name="send" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+        
+        {activeTab === "home" && (
+          <ScrollView contentContainerStyle={styles.questionContainer}>
+            <Text style={styles.sectionTitle}>All Sleep Topics</Text>
+            {Object.keys(qaPairs).map((question, index) => {
+              const iconName = questionIcons[question];
+              return (
+                <TouchableOpacity 
+                  key={index} 
+                  style={styles.questionButton} 
+                  onPress={() => {
+                    handleQuestionSelection(question);
+                    setActiveTab("chat");
+                  }}
+                >
+                  <Icon name={iconName} size={20} color="#fff" style={styles.questionIcon} />
+                  <Text style={styles.questionText}>{question}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
+
+        {activeTab === "profile" && (
+          <View style={styles.profileContainer}>
+            <View style={styles.profileHeader}>
+              <View style={styles.profileAvatar}>
+                <Icon name="user" size={40} color="#fff" />
+              </View>
+              <Text style={styles.profileName}>Sleep User</Text>
+              <Text style={styles.profileSubtitle}>Improve your sleep habits</Text>
+            </View>
+            
+            <View style={styles.statsContainer}>
+              <View style={styles.statCard}>
+                <Icon name="calendar" size={24} color="#4361EE" />
+                <Text style={styles.statValue}>7</Text>
+                <Text style={styles.statLabel}>Days Active</Text>
+              </View>
+              
+              <View style={styles.statCard}>
+                <Icon name="message-square" size={24} color="#4361EE" />
+                <Text style={styles.statValue}>12</Text>
+                <Text style={styles.statLabel}>Questions Asked</Text>
+              </View>
+              
+              <View style={styles.statCard}>
+                <Icon name="award" size={24} color="#4361EE" />
+                <Text style={styles.statValue}>Beginner</Text>
+                <Text style={styles.statLabel}>Sleep Level</Text>
+              </View>
+            </View>
+            
+            <View style={styles.settingsSection}>
+              <Text style={styles.sectionTitle}>Preferences</Text>
+              
+              <TouchableOpacity style={styles.settingRow}>
+                <Icon name="bell" size={20} color="#555" />
+                <Text style={styles.settingText}>Notifications</Text>
+                <Icon name="chevron-right" size={20} color="#aaa" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.settingRow}>
+                <Icon name="moon" size={20} color="#555" />
+                <Text style={styles.settingText}>Dark Mode</Text>
+                <Icon name="chevron-right" size={20} color="#aaa" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.settingRow}>
+                <Icon name="help-circle" size={20} color="#555" />
+                <Text style={styles.settingText}>Help Center</Text>
+                <Icon name="chevron-right" size={20} color="#aaa" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  container: { 
+    flex: 1, 
+    backgroundColor: "#F8F9FA", 
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginLeft: 10,
+    color: "#333",
+  },
+  tabContainer: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+    backgroundColor: "#fff",
+  },
+  tab: {
     flex: 1,
-    backgroundColor: "#E3F2FD",
-    padding: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
   },
-  message: {
-    padding: 10,
-    borderRadius: 8,
-    marginVertical: 4,
-    maxWidth: "80%",
+  activeTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: "#4361EE",
   },
-  userMessage: {
-    backgroundColor: "#4CAF50",
+  tabText: {
+    marginLeft: 5,
+    color: "#555",
+    fontSize: 14,
+  },
+  activeTabText: {
+    color: "#4361EE",
+    fontWeight: "500",
+  },
+  contentContainer: {
+    flex: 1,
+    justifyContent: "space-between",
+  },
+  messagesList: {
+    flex: 1,
+    padding: 16,
+  },
+  messageRow: {
+    flexDirection: "row",
+    marginBottom: 12,
+    alignItems: "flex-end",
+  },
+  userMessageRow: {
+    justifyContent: "flex-end",
+  },
+  botMessageRow: {
+    justifyContent: "flex-start",
+  },
+  botAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#4361EE",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  userAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#3CCF4E",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
+  },
+  message: { 
+    padding: 12, 
+    borderRadius: 16, 
+    maxWidth: "70%" 
+  },
+  userMessage: { 
+    backgroundColor: "#3CCF4E", 
+    borderBottomRightRadius: 4,
+  },
+  botMessage: { 
+    backgroundColor: "#fff", 
+    borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  messageText: { 
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  userMessageText: {
+    color: "#fff",
+  },
+  botMessageText: {
+    color: "#333",
+  },
+  timestamp: {
+    fontSize: 10,
+    color: "rgba(0,0,0,0.5)",
     alignSelf: "flex-end",
+    marginTop: 4,
   },
-  botMessage: {
-    backgroundColor: "#2196F3",
-    alignSelf: "flex-start",
+  chipContainer: {
+    maxHeight: 50,
+    paddingHorizontal: 16,
+    marginVertical: 10,
   },
-  messageText: {
-    color: "white",
-    fontSize: 16,
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f0f4ff",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: "#e0e8ff",
+  },
+  chipText: {
+    fontSize: 12,
+    color: "#4361EE",
+    marginLeft: 4,
   },
   inputContainer: {
     flexDirection: "row",
-    alignItems: "center",
-    padding: 10,
+    padding: 16,
+    backgroundColor: "#fff",
     borderTopWidth: 1,
-    borderColor: "#ddd",
+    borderTopColor: "#E0E0E0",
   },
   input: {
     flex: 1,
-    padding: 10,
-    borderWidth: 1,
-    borderRadius: 5,
-    borderColor: "#ddd",
-    backgroundColor: "white",
+    height: 44,
+    backgroundColor: "#F1F3F4",
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    marginRight: 8,
+    fontSize: 15,
   },
   sendButton: {
-    backgroundColor: "#007bff",
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 5,
-    marginLeft: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#4361EE",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  sendButtonText: {
-    color: "white",
-    fontSize: 16,
+  questionContainer: { 
+    padding: 16,
+    backgroundColor: "#F8F9FA",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 16,
+    color: "#333",
+  },
+  questionButton: { 
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#4361EE", 
+    padding: 16, 
+    borderRadius: 12, 
+    marginBottom: 12,
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  questionIcon: {
+    marginRight: 12,
+  },
+  questionText: { 
+    color: "white", 
+    fontSize: 15, 
+    fontWeight: "500",
+    flex: 1,
   },
 });
 

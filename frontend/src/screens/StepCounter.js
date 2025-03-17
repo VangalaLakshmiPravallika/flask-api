@@ -3,14 +3,15 @@ import { View, Text, StyleSheet, Animated } from "react-native";
 import { Accelerometer } from "expo-sensors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function StepCounter() {
+export default function StepCounter({ route }) {
   const [steps, setSteps] = useState(0);
   const [weeklySteps, setWeeklySteps] = useState(0);
   const [monthlySteps, setMonthlySteps] = useState(0);
   const [lastZ, setLastZ] = useState(0);
   const animatedSteps = useState(new Animated.Value(0))[0];
-  const threshold = 1.5; 
+  const threshold = 1.5;
   const [userEmail, setUserEmail] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserEmail = async () => {
@@ -25,10 +26,9 @@ export default function StepCounter() {
     let subscription = Accelerometer.addListener(({ x, y, z }) => {
       let deltaZ = Math.abs(z - lastZ);
       if (deltaZ > threshold) {
-        const newSteps = steps + 1;
-        updateSteps(newSteps);
+        updateSteps(steps + 1);
         Animated.timing(animatedSteps, {
-          toValue: newSteps,
+          toValue: steps + 1,
           duration: 300,
           useNativeDriver: false,
         }).start();
@@ -39,7 +39,6 @@ export default function StepCounter() {
     return () => subscription.remove();
   }, [lastZ, steps]);
 
-
   const loadSteps = async () => {
     try {
       const storedSteps = await AsyncStorage.getItem("steps");
@@ -47,15 +46,15 @@ export default function StepCounter() {
         setSteps(parseInt(storedSteps, 10));
         animatedSteps.setValue(parseInt(storedSteps, 10));
       }
-      if (userEmail) fetchStepsFromDB();
+      if (userEmail) await fetchStepsFromDB();
     } catch (error) {
       console.error("Error loading steps:", error);
     }
   };
 
-
   const fetchStepsFromDB = async () => {
     try {
+      setLoading(true);
       const response = await fetch(
         "https://healthfitnessbackend.onrender.com/api/get-step-history",
         {
@@ -74,11 +73,12 @@ export default function StepCounter() {
         setMonthlySteps(data.monthly);
         await AsyncStorage.setItem("steps", data.daily.toString());
       }
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching step history:", error);
+      setLoading(false);
     }
   };
-
 
   const updateSteps = async (newSteps) => {
     setSteps(newSteps);
@@ -93,7 +93,8 @@ export default function StepCounter() {
         },
         body: JSON.stringify({ steps: newSteps }),
       });
-      fetchStepsFromDB();
+
+      await fetchStepsFromDB();
     } catch (error) {
       console.error("Error updating steps:", error);
     }
@@ -124,4 +125,3 @@ const styles = StyleSheet.create({
   stepText: { fontSize: 36, fontWeight: "bold", color: "#fff" },
   footer: { marginTop: 20, color: "#FFD700" },
 });
-

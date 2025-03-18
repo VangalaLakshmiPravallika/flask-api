@@ -19,7 +19,7 @@ const AchievementsWall = () => {
         return;
       }
 
-      const response = await fetch("https://flask-s8i3.onrender.com/api/get-achievements", {
+      const response = await fetch("https://healthfitnessbackend.onrender.com/api/get-achievements", {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -39,7 +39,7 @@ const AchievementsWall = () => {
       setPosting(true);
       const token = await AsyncStorage.getItem("authToken");
 
-      const response = await fetch("https://flask-s8i3.onrender.com/api/post-badge", {
+      const response = await fetch("https://healthfitnessbackend.onrender.com/api/post-badge", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

@@ -21,6 +21,7 @@ import SoothingMusic from "./src/screens/SoothingMusic";
 import StepCounter from "./src/screens/StepCounter";
 import StepHistory from "./src/screens/StepHistory"; 
 import ChatBotScreen from "./src/screens/ChatBotScreen";
+import NotificationsScreen from "./src/screens/NotificationsScreen";
 
 const Stack = createStackNavigator();
 
@@ -58,6 +59,7 @@ export default function AppNavigator() {
         <Stack.Screen name="ProgressTracker" component={ProgressTracker} options={{ title:"Progress Tracker" }} />
         <Stack.Screen name="StepHistory" component={StepHistory} options={{ title: "Step History" }} />
         <Stack.Screen name="ChatBot" component={ChatBotScreen} />
+        <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
         <Stack.Screen name="SoothingMusic" component={SoothingMusic} options={{ title:"Soothing Music" }} />
 
       </Stack.Navigator>

@@ -44,17 +44,23 @@ const GroupPosts = () => {
   const fetchGroupPosts = async (authToken) => {
     try {
       setLoading(true);
-      const response = await axios.get(`${BASE_URL}/get-group-posts/${group}`, {
-        headers: { Authorization: `Bearer ${authToken}` }
-      });
+      console.log(`Fetching posts for group: ${group}`);  // Debug log
+      const response = await axios.get(
+        `https://healthfitnessbackend.onrender.com/api/get-group-posts/${group}`,
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      );
+  
+      console.log("API Response:", response.data); // Debug log
       setPosts(response.data);
     } catch (error) {
+      console.error("Error fetching posts:", error);
       Alert.alert("⚠️ Error", "Failed to load posts!");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
+  
 
   const fetchNotifications = async (authToken) => {
     try {

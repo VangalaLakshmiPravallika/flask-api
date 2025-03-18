@@ -12,9 +12,6 @@ import {
   Platform
 } from "react-native";
 
-// Import vector icons for React Native - this requires installing:
-// npm install react-native-vector-icons
-// And linking: npx react-native link react-native-vector-icons
 import Icon from 'react-native-vector-icons/Feather';
 
 const qaPairs = {

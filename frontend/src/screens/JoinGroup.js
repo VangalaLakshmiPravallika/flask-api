@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { 
-  View, Text, Button, FlatList, Alert, TouchableOpacity, ActivityIndicator, StyleSheet 
+  View, Text, FlatList, Alert, TouchableOpacity, ActivityIndicator, StyleSheet, 
+  ImageBackground, SafeAreaView, StatusBar
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
 
 const JoinGroup = () => {
   const [groups, setGroups] = useState([]); 
@@ -94,104 +96,202 @@ const JoinGroup = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>🌟 Join a Group 🌟</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" />
+      <ImageBackground 
+        source={{ uri: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=1050&q=80" }}
+        style={styles.backgroundImage}
+        imageStyle={styles.backgroundImageStyle}
+      >
+        <View style={styles.overlay}>
+          <View style={styles.headerContainer}>
+            <Text style={styles.title}>Fitness Communities</Text>
+            <Text style={styles.subtitle}>Join groups to share your journey</Text>
+          </View>
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#FF5722" />
-      ) : (
-        <FlatList
-          data={groups}
-          keyExtractor={(item) => item.name}
-          contentContainerStyle={{ paddingBottom: 50 }}
-          renderItem={({ item }) => (
-            <View style={styles.groupContainer}>
-              <Text style={styles.groupName}>{item.name}</Text>
-              {!userGroups.includes(item.name) ? (
-                <TouchableOpacity
-                  style={styles.joinButton}
-                  onPress={() => joinGroup(item.name)}
-                >
-                  <Text style={styles.buttonText}>Join</Text>
-                </TouchableOpacity>
-              ) : (
-                <>
-                  <TouchableOpacity
-                    style={styles.joinedButton}
-                    onPress={() => leaveGroup(item.name)}
-                  >
-                    <Text style={styles.buttonText}>Leave ❌</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={styles.postButton} 
-                    onPress={() => navigation.navigate("PostAchievement", { group: item.name })}
-                  >
-                    <Text style={styles.postButtonText}>📢 Post Achievement</Text>
-                  </TouchableOpacity>
-                </>
-              )}
+          {loading ? (
+            <View style={styles.loaderContainer}>
+              <ActivityIndicator size="large" color="#FFFFFF" />
+              <Text style={styles.loadingText}>Loading communities...</Text>
             </View>
+          ) : (
+            <FlatList
+              data={groups}
+              keyExtractor={(item) => item.name}
+              contentContainerStyle={styles.listContainer}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <View style={styles.groupContainer}>
+                  <LinearGradient
+                    colors={userGroups.includes(item.name) ? ['#3a7bd5', '#00d2ff'] : ['#f5f7fa', '#c3cfe2']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.groupGradient}
+                  >
+                    <View style={styles.groupHeader}>
+                      <Text style={[styles.groupName, userGroups.includes(item.name) && styles.joinedGroupName]}>
+                        {userGroups.includes(item.name) ? `${item.name} ✓` : item.name}
+                      </Text>
+                      <Text style={styles.groupMembers}>{Math.floor(Math.random() * 100) + 5} members</Text>
+                    </View>
+                    
+                    {!userGroups.includes(item.name) ? (
+                      <TouchableOpacity
+                        style={styles.joinButton}
+                        onPress={() => joinGroup(item.name)}
+                      >
+                        <Text style={styles.buttonText}>Join Community</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <View style={styles.actionButtons}>
+                        <TouchableOpacity
+                          style={styles.postButton}
+                          onPress={() => navigation.navigate("PostAchievement", { group: item.name })}
+                        >
+                          <Text style={styles.postButtonText}>📢 Share Achievement</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.leaveButton}
+                          onPress={() => leaveGroup(item.name)}
+                        >
+                          <Text style={styles.leaveButtonText}>Leave</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </LinearGradient>
+                </View>
+              )}
+            />
           )}
-        />
-      )}
-    </View>
+        </View>
+      </ImageBackground>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    padding: 20, 
-    backgroundColor: "#E3F2FD" 
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#040F2D",
   },
-  title: { 
-    fontSize: 26, 
-    fontWeight: "bold", 
-    color: "#1A237E", 
-    textAlign: "center", 
-    marginBottom: 15 
+  backgroundImage: {
+    flex: 1,
   },
-  groupContainer: { 
-    padding: 15, 
-    backgroundColor: "#FFEBEE", 
-    borderRadius: 12, 
-    marginBottom: 10, 
-    borderWidth: 1, 
-    borderColor: "#D1D1E0",
-    elevation: 5, 
+  backgroundImageStyle: {
+    opacity: 0.5,
   },
-  groupName: { 
-    fontSize: 20, 
-    fontWeight: "bold", 
-    color: "#880E4F"
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(4, 15, 45, 0.85)",
+    padding: 20,
+  },
+  headerContainer: {
+    alignItems: "center",
+    marginBottom: 20,
+    paddingTop: 15,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+    textAlign: "center",
+    marginBottom: 5,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 5,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#B8C6DB",
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 15,
+    color: "#FFFFFF",
+    fontSize: 16,
+  },
+  listContainer: {
+    paddingBottom: 100,
+  },
+  groupContainer: {
+    marginBottom: 15,
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  groupGradient: {
+    padding: 20,
+    borderRadius: 16,
+  },
+  groupHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  groupName: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#2C3E50",
+    flex: 1,
+  },
+  joinedGroupName: {
+    color: "#FFFFFF",
+  },
+  groupMembers: {
+    fontSize: 14,
+    color: "#7F8C8D",
   },
   joinButton: {
-    backgroundColor: "#2196F3", 
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 10,
-  },
-  joinedButton: {
-    backgroundColor: "#F44336", 
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 10,
+    backgroundColor: "#3498DB",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: "center",
   },
   buttonText: {
     color: "white",
     fontWeight: "bold",
-    textAlign: "center",
+    fontSize: 16,
+  },
+  actionButtons: {
+    flexDirection: "column",
+    gap: 10,
   },
   postButton: {
-    backgroundColor: "#9C27B0", 
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 10,
+    backgroundColor: "#9b59b6",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: "center",
   },
   postButtonText: {
     color: "white",
     fontWeight: "bold",
-    textAlign: "center",
+    fontSize: 16,
+  },
+  leaveButton: {
+    backgroundColor: "transparent",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.5)",
+    alignItems: "center",
+  },
+  leaveButtonText: {
+    color: "white",
+    fontSize: 15,
   },
 });
 

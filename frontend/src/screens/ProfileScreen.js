@@ -43,6 +43,9 @@ const ProfileScreen = () => {
                 ⚖️ <Text style={styles.text}>Weight: {userData.weight} kg</Text>
               </Text>
               <Text style={styles.label}>
+                📏 <Text style={styles.text}>Height: {userData.height} cm</Text>
+              </Text>
+              <Text style={styles.label}>
                 💊 <Text style={styles.text}>Medications: {userData.medications || "None"}</Text>
               </Text>
             </>

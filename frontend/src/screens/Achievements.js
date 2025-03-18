@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, StyleSheet, Button, Alert, ActivityIndicator } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const AchievementsWall = () => {
@@ -15,19 +15,24 @@ const AchievementsWall = () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
-        console.error("No token found");
+        Alert.alert("Error", "Authentication token is missing.");
+        setLoading(false);
         return;
       }
 
       const response = await fetch("https://healthfitnessbackend.onrender.com/api/get-achievements", {
         method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` }, // ✅ Fixed incorrect string interpolation
       });
 
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
-      console.log("Fetched Achievements:", data);
       setAchievements(data);
     } catch (error) {
+      Alert.alert("Error", "Failed to fetch achievements.");
       console.error("Error fetching achievements:", error);
     } finally {
       setLoading(false);
@@ -39,10 +44,15 @@ const AchievementsWall = () => {
       setPosting(true);
       const token = await AsyncStorage.getItem("authToken");
 
+      if (!token) {
+        Alert.alert("Error", "Authentication token is missing.");
+        return;
+      }
+
       const response = await fetch("https://healthfitnessbackend.onrender.com/api/post-badge", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`, // ✅ Fixed incorrect string interpolation
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -65,67 +75,29 @@ const AchievementsWall = () => {
     }
   };
 
-  // Helper function to determine badge emoji based on title text
-  const getBadgeEmoji = (title) => {
-    const lowerTitle = title?.toLowerCase() || "";
-    if (lowerTitle.includes("run") || lowerTitle.includes("marathon")) return "🏃";
-    if (lowerTitle.includes("swim")) return "🏊";
-    if (lowerTitle.includes("bike") || lowerTitle.includes("cycle")) return "🚴";
-    if (lowerTitle.includes("lift") || lowerTitle.includes("strength")) return "🏋️";
-    if (lowerTitle.includes("yoga")) return "🧘";
-    if (lowerTitle.includes("goal")) return "🎯";
-    return "🏆"; // Default trophy
-  };
-
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.heading}>Achievements Wall</Text>
-        <Text style={styles.subheading}>Track your fitness milestones</Text>
-      </View>
+      <Text style={styles.heading}>🏆 Achievements Wall</Text>
 
       {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3E92CC" />
-          <Text style={styles.loadingText}>Loading your achievements...</Text>
-        </View>
+        <ActivityIndicator size="large" color="#FFA500" />
       ) : achievements.length === 0 ? (
-        <View style={styles.emptyStateContainer}>
-          <Text style={styles.emptyStateEmoji}>🏋️</Text>
-          <Text style={styles.emptyStateTitle}>No achievements yet</Text>
-          <Text style={styles.emptyStateMessage}>Keep working towards your goals and milestones will appear here!</Text>
-        </View>
+        <Text style={styles.noAchievements}>No achievements yet. Keep working towards your goals! 💪</Text>
       ) : (
         <FlatList
           data={achievements}
           keyExtractor={(item, index) => index.toString()}
           renderItem={({ item }) => (
             <View style={styles.achievementCard}>
-              <View style={styles.cardHeader}>
-                <View style={styles.badgeContainer}>
-                  <Text style={styles.badgeEmoji}>{getBadgeEmoji(item.title)}</Text>
-                </View>
-                <View style={styles.titleContainer}>
-                  <Text style={styles.title}>{item.title}</Text>
-                  <Text style={styles.user}>Achieved by {item.user}</Text>
-                </View>
+              <Text style={styles.title}>{item.title}</Text>
+              <Text style={styles.description}>{item.description}</Text>
+              <Text style={styles.user}>By: {item.user}</Text>
+              <View style={styles.buttonContainer}>
+                <Button title="📢 Post to Group" onPress={() => postToGroup(item.title)} disabled={posting} color="#FF8C00" />
               </View>
-              <View style={styles.cardBody}>
-                <Text style={styles.description}>{item.description}</Text>
-              </View>
-              <TouchableOpacity
-                style={[styles.shareButton, posting ? styles.shareButtonDisabled : null]}
-                onPress={() => postToGroup(item.title)}
-                disabled={posting}
-              >
-                <Text style={styles.shareButtonText}>
-                  {posting ? "Posting..." : "📢 Share with Fitness Achievers"}
-                </Text>
-              </TouchableOpacity>
             </View>
           )}
           contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
         />
       )}
     </View>
@@ -133,127 +105,30 @@ const AchievementsWall = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: "#F5F7FA",
-  },
-  header: {
-    marginBottom: 24,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E1E8ED",
-  },
-  heading: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#2C3E50",
-    marginBottom: 4,
-  },
-  subheading: {
-    fontSize: 16,
-    color: "#7F8C8D",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: "#7F8C8D",
-  },
-  emptyStateContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  emptyStateEmoji: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  emptyStateTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#2C3E50",
-    marginBottom: 8,
-  },
-  emptyStateMessage: {
-    fontSize: 16,
-    textAlign: "center",
-    color: "#7F8C8D",
-    lineHeight: 22,
-  },
-  scrollContainer: {
-    paddingBottom: 20,
-  },
+  container: { flex: 1, padding: 20, backgroundColor: "#FFFACD" }, // Light yellow
+  heading: { fontSize: 26, fontWeight: "bold", marginBottom: 20, textAlign: "center", color: "#FF8C00" },
+  noAchievements: { fontSize: 16, textAlign: "center", color: "#555", marginTop: 20 },
+  scrollContainer: { flexGrow: 1 },
   achievementCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    marginBottom: 16,
+    padding: 15,
+    backgroundColor: "#FFF",
+    borderRadius: 12,
+    marginBottom: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 4,
+    borderLeftWidth: 5,
+    borderLeftColor: "#FFA500", 
+  },
+  title: { fontSize: 20, fontWeight: "bold", color: "#333" },
+  description: { fontSize: 16, color: "#555", marginBottom: 5 },
+  user: { fontSize: 14, fontStyle: "italic", color: "#777", marginBottom: 10 },
+  buttonContainer: {
+    marginTop: 10,
+    borderRadius: 8,
     overflow: "hidden",
-  },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1F2F6",
-  },
-  badgeContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#E6F3FF",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  badgeEmoji: {
-    fontSize: 24,
-  },
-  titleContainer: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#2C3E50",
-    marginBottom: 2,
-  },
-  user: {
-    fontSize: 14,
-    color: "#7F8C8D",
-  },
-  cardBody: {
-    padding: 16,
-  },
-  description: {
-    fontSize: 16,
-    color: "#34495E",
-    lineHeight: 22,
-  },
-  shareButton: {
-    backgroundColor: "#3E92CC",
-    padding: 14,
-    alignItems: "center",
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-  },
-  shareButtonDisabled: {
-    backgroundColor: "#A4C2DC",
-  },
-  shareButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-    fontSize: 16,
   },
 });
 

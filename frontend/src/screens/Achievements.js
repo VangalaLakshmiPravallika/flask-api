@@ -15,24 +15,19 @@ const AchievementsWall = () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
-        Alert.alert("Error", "Authentication token is missing.");
-        setLoading(false);
+        console.error("No token found");
         return;
       }
 
-      const response = await fetch("https://healthfitnessbackend.onrender.com/api/get-achievements", {
+      const response = await fetch("https://flask-s8i3.onrender.com/api/get-achievements", {
         method: "GET",
-        headers: { Authorization: `Bearer ${token}` }, // ✅ Fixed incorrect string interpolation
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-
       const data = await response.json();
+      console.log("Fetched Achievements:", data);
       setAchievements(data);
     } catch (error) {
-      Alert.alert("Error", "Failed to fetch achievements.");
       console.error("Error fetching achievements:", error);
     } finally {
       setLoading(false);
@@ -44,15 +39,10 @@ const AchievementsWall = () => {
       setPosting(true);
       const token = await AsyncStorage.getItem("authToken");
 
-      if (!token) {
-        Alert.alert("Error", "Authentication token is missing.");
-        return;
-      }
-
-      const response = await fetch("https://healthfitnessbackend.onrender.com/api/post-badge", {
+      const response = await fetch("https://flask-s8i3.onrender.com/api/post-badge", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`, // ✅ Fixed incorrect string interpolation
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({

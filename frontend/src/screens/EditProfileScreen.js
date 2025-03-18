@@ -1,21 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Alert 
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
+import { MaterialIcons } from "@expo/vector-icons";
 
-const EditProfileScreen = () => {
+const ProfileScreen = () => {
   const navigation = useNavigation();
-  const [name, setName] = useState("");
-  const [age, setAge] = useState("");
-  const [weight, setWeight] = useState("");
-  const [medications, setMedications] = useState("");
+  const [userData, setUserData] = useState(null);
 
   useEffect(() => {
     loadUserData();
@@ -25,119 +16,116 @@ const EditProfileScreen = () => {
     try {
       const data = await AsyncStorage.getItem("userProfile");
       if (data) {
-        const userData = JSON.parse(data);
-        setName(userData.name || "");
-        setAge(userData.age || "");
-        setWeight(userData.weight || "");
-        setMedications(userData.medications || "");
+        setUserData(JSON.parse(data));
       }
     } catch (error) {
       console.error("Error loading user data:", error);
     }
   };
 
-  const saveUserData = async () => {
-    if (!name || !age || !weight) {
-      Alert.alert("Error", "Please fill in all required fields.");
-      return;
-    }
-
-    const userData = { name, age, weight, medications };
-    try {
-      await AsyncStorage.setItem("userProfile", JSON.stringify(userData));
-      Alert.alert("Success", "Profile updated successfully!");
-      navigation.goBack();
-    } catch (error) {
-      console.error("Error saving user data:", error);
-      Alert.alert("Error", "Failed to save profile.");
-    }
-  };
-
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>📝 Edit Profile</Text>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.profileCard}>
+          <Text style={styles.heading}>
+            <MaterialIcons name="person" size={28} color="#4CAF50" /> User Profile
+          </Text>
 
-      <TextInput 
-        style={styles.input} 
-        placeholder="Name" 
-        value={name} 
-        onChangeText={setName} 
-        placeholderTextColor="#666"
-      />
-      <TextInput 
-        style={styles.input} 
-        placeholder="Age" 
-        value={age} 
-        onChangeText={setAge} 
-        keyboardType="numeric" 
-        placeholderTextColor="#666"
-      />
-      <TextInput 
-        style={styles.input} 
-        placeholder="Weight (kg)" 
-        value={weight} 
-        onChangeText={setWeight} 
-        keyboardType="numeric" 
-        placeholderTextColor="#666"
-      />
-      <TextInput 
-        style={styles.input} 
-        placeholder="Medications (Optional)" 
-        value={medications} 
-        onChangeText={setMedications} 
-        placeholderTextColor="#666"
-      />
+          {userData ? (
+            <>
+              <Text style={styles.label}>
+                👤 <Text style={styles.text}>Name: {userData.name}</Text>
+              </Text>
+              <Text style={styles.label}>
+                📅 <Text style={styles.text}>Age: {userData.age}</Text>
+              </Text>
+              <Text style={styles.label}>
+                ⚖️ <Text style={styles.text}>Weight: {userData.weight} kg</Text>
+              </Text>
+              <Text style={styles.label}>
+                📏 <Text style={styles.text}>Height: {userData.height} cm</Text>
+              </Text>
+              <Text style={styles.label}>
+                📊 <Text style={styles.text}>BMI: {userData.bmi}</Text>
+              </Text>
+              <Text style={styles.label}>
+                💊 <Text style={styles.text}>Medications: {userData.medications || "None"}</Text>
+              </Text>
+            </>
+          ) : (
+            <Text style={styles.noData}>No details available. Please add your details.</Text>
+          )}
 
-      <TouchableOpacity style={styles.button} onPress={saveUserData}>
-        <Text style={styles.buttonText}>💾 Save Profile</Text>
-      </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => navigation.navigate("EditProfile")}
+          >
+            <MaterialIcons name="edit" size={20} color="#fff" />
+            <Text style={styles.buttonText}> Edit Profile</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    justifyContent: "center", 
-    alignItems: "center", 
-    backgroundColor: "#E8F5E9",
-    paddingHorizontal: 20
+  container: {
+    flex: 1,
+    backgroundColor: "#E3F2FD", 
+    padding: 20,
   },
-  heading: { 
-    fontSize: 26, 
-    fontWeight: "bold", 
-    marginBottom: 20, 
-    color: "#2C3E50" 
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
   },
-  input: { 
-    width: "100%", 
-    backgroundColor: "#FFF", 
-    padding: 12, 
-    borderRadius: 10, 
-    marginBottom: 15, 
-    fontSize: 16, 
-    color: "#333", 
-    borderWidth: 1, 
-    borderColor: "#B2DFDB", 
-    elevation: 3, 
+  profileCard: {
+    backgroundColor: "#ffffff",
+    padding: 20,
+    borderRadius: 15,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 3
+    shadowRadius: 5,
+    elevation: 5, 
+    alignItems: "center",
   },
-  button: { 
-    backgroundColor: "#388E3C", 
-    paddingVertical: 12, 
-    paddingHorizontal: 30, 
-    borderRadius: 8, 
-    marginTop: 10,
-    elevation: 4, 
+  heading: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 15,
+    textAlign: "center",
   },
-  buttonText: { 
-    fontSize: 18, 
-    color: "#FFF", 
-    fontWeight: "bold" 
-  }
+  label: {
+    fontSize: 18,
+    color: "#333",
+    marginBottom: 10,
+  },
+  text: {
+    fontWeight: "bold",
+    color: "#1976D2",
+  },
+  noData: {
+    fontSize: 16,
+    color: "#757575",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  editButton: {
+    marginTop: 20,
+    backgroundColor: "#4CAF50", 
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginLeft: 8,
+  },
 });
 
-export default EditProfileScreen;
+export default ProfileScreen;

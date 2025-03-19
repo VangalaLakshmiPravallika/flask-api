@@ -6,6 +6,7 @@ import LoginScreen from "./src/screens/LoginScreen";
 import RegisterScreen from "./src/screens/RegisterScreen";
 import HomeScreen from "./src/screens/HomeScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
+import HealthDataForm from "./src/screens/HealthDataForm"; 
 import EditProfileScreen from "./src/screens/EditProfileScreen";
 import SleepTracker from "./src/screens/SleepTracker";
 import AchievementsWall from "./src/screens/AchievementsWall";

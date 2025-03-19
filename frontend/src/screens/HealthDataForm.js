@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,18 +7,105 @@ import {
   TextInput,
   Dimensions,
   Animated,
+  Alert,
+  SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native'; // ✅ Import navigation
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
-const OnboardingFlow = () => {
-  const navigation = useNavigation(); // ✅ Use navigation hook
+// Step Components
+const NameStep = ({ name, updateName }) => (
+  <View style={styles.stepContainer}>
+    <Text style={styles.label}>Name</Text>
+    <TextInput
+      style={styles.input}
+      value={name}
+      onChangeText={updateName}
+      placeholder="Enter your name"
+      placeholderTextColor="#999"
+    />
+  </View>
+);
+
+const AgeStep = ({ age, updateAge }) => (
+  <View style={styles.stepContainer}>
+    <Text style={styles.label}>Age</Text>
+    <TextInput
+      style={styles.input}
+      value={age}
+      onChangeText={updateAge}
+      placeholder="Enter your age"
+      placeholderTextColor="#999"
+      keyboardType="numeric"
+    />
+  </View>
+);
+
+const GenderStep = ({ gender, updateGender }) => (
+  <View style={styles.stepContainer}>
+    <Text style={styles.label}>Gender</Text>
+    <TextInput
+      style={styles.input}
+      value={gender}
+      onChangeText={updateGender}
+      placeholder="Enter your gender"
+      placeholderTextColor="#999"
+    />
+  </View>
+);
+
+const HeightStep = ({ height, updateHeight }) => (
+  <View style={styles.stepContainer}>
+    <Text style={styles.label}>Height (cm)</Text>
+    <TextInput
+      style={styles.input}
+      value={height}
+      onChangeText={updateHeight}
+      placeholder="Enter your height"
+      placeholderTextColor="#999"
+      keyboardType="numeric"
+    />
+  </View>
+);
+
+const WeightStep = ({ weight, updateWeight }) => (
+  <View style={styles.stepContainer}>
+    <Text style={styles.label}>Weight (kg)</Text>
+    <TextInput
+      style={styles.input}
+      value={weight}
+      onChangeText={updateWeight}
+      placeholder="Enter your weight"
+      placeholderTextColor="#999"
+      keyboardType="numeric"
+    />
+  </View>
+);
+
+const SummaryStep = ({ userData }) => (
+  <View style={styles.stepContainer}>
+    <Text style={styles.label}>Summary</Text>
+    <Text style={styles.summaryText}>Name: {userData.name}</Text>
+    <Text style={styles.summaryText}>Age: {userData.age}</Text>
+    <Text style={styles.summaryText}>Gender: {userData.gender}</Text>
+    <Text style={styles.summaryText}>Height: {userData.height} cm</Text>
+    <Text style={styles.summaryText}>Weight: {userData.weight} kg</Text>
+  </View>
+);
+
+// Main Component
+const HealthDataForm = () => {
+  const navigation = useNavigation();
   const [currentStep, setCurrentStep] = useState(0);
-  const [animation] = useState(new Animated.Value(0));
+  const animation = useRef(new Animated.Value(0)).current;
   const [userData, setUserData] = useState({
     name: '',
     age: '',
@@ -27,7 +114,6 @@ const OnboardingFlow = () => {
     weight: '',
   });
 
-  // Animation values
   const slideValue = animation.interpolate({
     inputRange: [0, 1],
     outputRange: [width, 0],
@@ -38,32 +124,22 @@ const OnboardingFlow = () => {
     outputRange: [0, 0.5, 1],
   });
 
-  const animateIn = () => {
+  useEffect(() => {
     Animated.timing(animation, {
       toValue: 1,
       duration: 500,
       useNativeDriver: true,
     }).start();
-  };
-
-  const animateOut = (callback) => {
-    Animated.timing(animation, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => {
-      animation.setValue(0);
-      callback();
-    });
-  };
-
-  React.useEffect(() => {
-    animateIn();
   }, [currentStep]);
 
   const handleNext = () => {
     if (validateCurrentStep()) {
-      animateOut(() => {
+      Animated.timing(animation, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        animation.setValue(0);
         setCurrentStep(currentStep + 1);
       });
     }
@@ -71,7 +147,12 @@ const OnboardingFlow = () => {
 
   const handleBack = () => {
     if (currentStep > 0) {
-      animateOut(() => {
+      Animated.timing(animation, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        animation.setValue(0);
         setCurrentStep(currentStep - 1);
       });
     }
@@ -79,7 +160,6 @@ const OnboardingFlow = () => {
 
   const validateCurrentStep = () => {
     const { name, age, gender, height, weight } = userData;
-    
     switch (currentStep) {
       case 0:
         return name.trim().length > 0;
@@ -96,78 +176,48 @@ const OnboardingFlow = () => {
     }
   };
 
-  const updateUserData = (field, value) => {
-    setUserData({
-      ...userData,
-      [field]: value,
-    });
-  };
-
-  const handleFinish = async () => {
+  const handleSubmit = async () => {
     try {
-      const token = await AsyncStorage.getItem("authToken");
-  
-      const response = await fetch("https://healthfitnessbackend.onrender.com/api/store-profile", {
-        method: "POST",
+      const token = await AsyncStorage.getItem('authToken');
+
+      const response = await fetch('https://healthfitnessbackend.onrender.com/api/save-health-data', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(userData),
       });
-  
+
       const data = await response.json();
-  
+
       if (response.ok) {
-        Alert.alert("Success", `Profile saved! Your BMI: ${data.bmi}`);
-        navigation.replace("Home"); 
+        Alert.alert('Success', `Health Data Saved! Your BMI: ${data.bmi}`);
+        navigation.replace('Home');
       } else {
-        Alert.alert("Error", data.error || "Failed to store profile.");
+        Alert.alert('Error', data.error || 'Failed to save health data');
       }
     } catch (error) {
-      console.error("Error saving profile:", error);
-      Alert.alert("Error", "Something went wrong!");
+      Alert.alert('Error', 'Something went wrong!');
     }
   };
-  
+
+  const updateUserData = (field, value) => {
+    setUserData({ ...userData, [field]: value });
+  };
 
   const getStepContent = () => {
     switch (currentStep) {
       case 0:
-        return (
-          <NameStep 
-            name={userData.name} 
-            updateName={(value) => updateUserData('name', value)} 
-          />
-        );
+        return <NameStep name={userData.name} updateName={(value) => updateUserData('name', value)} />;
       case 1:
-        return (
-          <AgeStep 
-            age={userData.age} 
-            updateAge={(value) => updateUserData('age', value)} 
-          />
-        );
+        return <AgeStep age={userData.age} updateAge={(value) => updateUserData('age', value)} />;
       case 2:
-        return (
-          <GenderStep 
-            gender={userData.gender} 
-            updateGender={(value) => updateUserData('gender', value)} 
-          />
-        );
+        return <GenderStep gender={userData.gender} updateGender={(value) => updateUserData('gender', value)} />;
       case 3:
-        return (
-          <HeightStep 
-            height={userData.height} 
-            updateHeight={(value) => updateUserData('height', value)} 
-          />
-        );
+        return <HeightStep height={userData.height} updateHeight={(value) => updateUserData('height', value)} />;
       case 4:
-        return (
-          <WeightStep 
-            weight={userData.weight} 
-            updateWeight={(value) => updateUserData('weight', value)} 
-          />
-        );
+        return <WeightStep weight={userData.weight} updateWeight={(value) => updateUserData('weight', value)} />;
       case 5:
         return <SummaryStep userData={userData} />;
       default:
@@ -175,128 +225,60 @@ const OnboardingFlow = () => {
     }
   };
 
-  const isLastStep = currentStep === 5;
-  
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
-      <LinearGradient
-        colors={['#4568DC', '#B06AB3']}
-        style={styles.background}
-      />
-      
-      <View style={styles.headerContainer}>
-        <Text style={styles.stepTitle}>Step {currentStep + 1}/6</Text>
-      </View>
-      
-      <Animated.View 
-        style={[
-          styles.contentContainer,
-          {
-            transform: [{ translateX: slideValue }],
-            opacity: fadeValue,
-          }
-        ]}
-      >
-        {getStepContent()}
-      </Animated.View>
-      
-      <View style={styles.buttonContainer}>
-        {currentStep > 0 && (
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <Ionicons name="arrow-back" size={24} color="#fff" />
-          </TouchableOpacity>
-        )}
-        
-        <TouchableOpacity 
-          style={[
-            styles.nextButton,
-            !validateCurrentStep() && styles.disabledButton,
-            isLastStep && styles.doneButton
-          ]}
-          onPress={isLastStep ? handleFinish : handleNext}
-          disabled={!validateCurrentStep()}
-        >
-          <Text style={styles.nextButtonText}>
-            {isLastStep ? 'START MY JOURNEY' : 'CONTINUE'}
-          </Text>
-          {!isLastStep && <Ionicons name="arrow-forward" size={24} color="#fff" />}
-        </TouchableOpacity>
-      </View>
-    </View>
+      <LinearGradient colors={['#4568DC', '#B06AB3']} style={styles.background} />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardAvoid}>
+        <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+          <Animated.View style={[styles.contentContainer, { transform: [{ translateX: slideValue }], opacity: fadeValue }]}>
+            {getStepContent()}
+          </Animated.View>
+          <View style={styles.buttonContainer}>
+            {currentStep > 0 && (
+              <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+                <Ionicons name="arrow-back" size={24} color="#fff" />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[styles.nextButton, !validateCurrentStep() && styles.disabledButton]}
+              onPress={currentStep === 5 ? handleSubmit : handleNext}
+              disabled={!validateCurrentStep()}
+            >
+              <Text style={styles.nextButtonText}>{currentStep === 5 ? 'FINISH' : 'NEXT'}</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
+// Styles
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  background: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-  },
-  headerContainer: {
+  container: { flex: 1 },
+  background: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 },
+  keyboardAvoid: { flex: 1 },
+  scrollContainer: { flexGrow: 1, justifyContent: 'center', padding: 20 },
+  contentContainer: { alignItems: 'center', justifyContent: 'center' },
+  stepContainer: { width: '100%', marginBottom: 20 },
+  label: { fontSize: 16, marginBottom: 10, color: '#fff' },
+  input: {
     width: '100%',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginTop: 20,
-  },
-  stepTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
-  },
-  contentContainer: {
-    width: '100%',
-    flex: 1,
-    paddingHorizontal: 20,
-    justifyContent: 'center',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  backButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  nextButton: {
-    flexDirection: 'row',
+    height: 40,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 10,
     backgroundColor: '#fff',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flex: 1,
-    marginLeft: 10,
+    color: '#000',
   },
-  disabledButton: {
-    opacity: 0.5,
-  },
-  doneButton: {
-    backgroundColor: '#FF4500',
-  },
-  nextButtonText: {
-    color: '#333',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginRight: 10,
-  },
+  summaryText: { fontSize: 16, color: '#fff', marginBottom: 10 },
+  buttonContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 },
+  backButton: { padding: 15, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.3)' },
+  nextButton: { padding: 15, borderRadius: 50, backgroundColor: '#4CAF50', alignItems: 'center', justifyContent: 'center' },
+  nextButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  disabledButton: { opacity: 0.5 },
 });
 
 export default HealthDataForm;

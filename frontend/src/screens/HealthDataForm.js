@@ -11,15 +11,20 @@ import {
   SafeAreaView,
   ImageBackground,
   Dimensions,
-  Animated
+  Animated,
+  Alert
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";  // ✅ Import navigation
 
 const { width } = Dimensions.get('window');
 
 const HealthDataForm = () => {
+  const navigation = useNavigation();  // ✅ Initialize navigation
+
   // Animation values
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
@@ -31,7 +36,6 @@ const HealthDataForm = () => {
   const [gender, setGender] = useState('');
   const [heightUnit, setHeightUnit] = useState('cm');
   const [weightUnit, setWeightUnit] = useState('kg');
-  const [formSubmitted, setFormSubmitted] = useState(false);
 
   // Run animations on component mount
   React.useEffect(() => {
@@ -51,25 +55,23 @@ const HealthDataForm = () => {
 
   // Handle form submission
   const handleSubmit = async () => {
-    // Validate inputs
     if (!height || !weight || !age || !gender) {
-      alert('Please fill in all fields');
+      Alert.alert("Error", "Please fill in all fields");
       return;
     }
-  
-    // Convert height and weight to numeric
+
     const heightNum = parseFloat(height);
     const weightNum = parseFloat(weight);
     const ageNum = parseInt(age);
-  
+
     if (isNaN(heightNum) || isNaN(weightNum) || isNaN(ageNum)) {
-      alert('Please enter valid numbers for height, weight, and age');
+      Alert.alert("Error", "Please enter valid numbers for height, weight, and age");
       return;
     }
-  
+
     try {
-      const token = await AsyncStorage.getItem("authToken"); // Get JWT token
-  
+      const token = await AsyncStorage.getItem("authToken");
+
       const response = await fetch("https://healthfitnessbackend.onrender.com/api/save-health-data", {
         method: "POST",
         headers: {
@@ -83,63 +85,22 @@ const HealthDataForm = () => {
           gender,
         }),
       });
-  
+
       const data = await response.json();
-  
+
       if (response.ok) {
-        alert(`Health Data Saved! Your BMI: ${data.bmi}`);
+        Alert.alert("Success", `Health Data Saved! Your BMI: ${data.bmi}`);
         
-        // Animate transition to summary view (kept unchanged)
-        Animated.sequence([
-          Animated.timing(fadeAnim, {
-            toValue: 0,
-            duration: 300,
-            useNativeDriver: true
-          }),
-          Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-            delay: 100
-          })
-        ]).start(() => {
-          setFormSubmitted(true);
-        });
-  
-        console.log({
-          height: `${heightNum} ${heightUnit}`,
-          weight: `${weightNum} ${weightUnit}`,
-          age: ageNum,
-          gender
-        });
+        // ✅ Redirect to Home after submission
+        navigation.replace("Home");
+
       } else {
-        alert(data.error || "Failed to save health data");
+        Alert.alert("Error", data.error || "Failed to save health data");
       }
     } catch (error) {
       console.error("Error saving health data:", error);
-      alert("Something went wrong!");
+      Alert.alert("Error", "Something went wrong!");
     }
-  };
-  
-  // Reset form
-  const handleReset = () => {
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true
-    }).start(() => {
-      setHeight('');
-      setWeight('');
-      setAge('');
-      setGender('');
-      setFormSubmitted(false);
-      
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true
-      }).start();
-    });
   };
 
   return (
@@ -154,156 +115,100 @@ const HealthDataForm = () => {
           colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.7)']}
           style={styles.gradient}
         >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.keyboardAvoid}
-          >
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardAvoid}>
             <ScrollView contentContainerStyle={styles.scrollContainer}>
-              <Animated.View 
-                style={[
-                  styles.formContainer,
-                  { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
-                ]}
-              >
+              <Animated.View style={[styles.formContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
                 <View style={styles.headerContainer}>
                   <Text style={styles.title}>HEALTH PROFILE</Text>
                   <View style={styles.divider} />
                   <Text style={styles.subtitle}>Your journey to fitness starts here</Text>
                 </View>
-                
-                {formSubmitted ? (
-                  <View style={styles.summaryContainer}>
-                    <Text style={styles.summaryTitle}>Your Information</Text>
-                    <View style={styles.summaryCard}>
-                      <View style={styles.summaryRow}>
-                        <View style={styles.summaryItem}>
-                          <Text style={styles.summaryLabel}>HEIGHT</Text>
-                          <Text style={styles.summaryValue}>{height} {heightUnit}</Text>
-                        </View>
-                        <View style={styles.summaryItem}>
-                          <Text style={styles.summaryLabel}>WEIGHT</Text>
-                          <Text style={styles.summaryValue}>{weight} {weightUnit}</Text>
-                        </View>
-                      </View>
-                      <View style={styles.summaryRow}>
-                        <View style={styles.summaryItem}>
-                          <Text style={styles.summaryLabel}>AGE</Text>
-                          <Text style={styles.summaryValue}>{age} years</Text>
-                        </View>
-                        <View style={styles.summaryItem}>
-                          <Text style={styles.summaryLabel}>GENDER</Text>
-                          <Text style={styles.summaryValue}>{gender}</Text>
-                        </View>
-                      </View>
-                    </View>
-                    <TouchableOpacity style={styles.button} onPress={handleReset}>
-                      <LinearGradient
-                        colors={['#4CAF50', '#8BC34A']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.buttonGradient}
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>HEIGHT</Text>
+                  <View style={styles.unitInputContainer}>
+                    <TextInput
+                      style={styles.unitInput}
+                      placeholder="Enter height"
+                      placeholderTextColor="#aaa"
+                      value={height}
+                      onChangeText={setHeight}
+                      keyboardType="numeric"
+                    />
+                    <View style={styles.unitPicker}>
+                      <Picker
+                        selectedValue={heightUnit}
+                        onValueChange={(itemValue) => setHeightUnit(itemValue)}
+                        style={styles.picker}
+                        dropdownIconColor="#fff"
                       >
-                        <Text style={styles.buttonText}>EDIT INFORMATION</Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
+                        <Picker.Item label="cm" value="cm" />
+                        <Picker.Item label="feet" value="feet" />
+                      </Picker>
+                    </View>
                   </View>
-                ) : (
-                  <>
-                    <View style={styles.inputGroup}>
-                      <Text style={styles.label}>HEIGHT</Text>
-                      <View style={styles.unitInputContainer}>
-                        <TextInput
-                          style={styles.unitInput}
-                          placeholder="Enter height"
-                          placeholderTextColor="#aaa"
-                          value={height}
-                          onChangeText={setHeight}
-                          keyboardType="numeric"
-                        />
-                        <View style={styles.unitPicker}>
-                          <Picker
-                            selectedValue={heightUnit}
-                            onValueChange={(itemValue) => setHeightUnit(itemValue)}
-                            style={styles.picker}
-                            dropdownIconColor="#fff"
-                            itemStyle={styles.pickerItem}
-                          >
-                            <Picker.Item label="cm" value="cm" />
-                            <Picker.Item label="feet" value="feet" />
-                          </Picker>
-                        </View>
-                      </View>
-                    </View>
+                </View>
 
-                    <View style={styles.inputGroup}>
-                      <Text style={styles.label}>WEIGHT</Text>
-                      <View style={styles.unitInputContainer}>
-                        <TextInput
-                          style={styles.unitInput}
-                          placeholder="Enter weight"
-                          placeholderTextColor="#aaa"
-                          value={weight}
-                          onChangeText={setWeight}
-                          keyboardType="numeric"
-                        />
-                        <View style={styles.unitPicker}>
-                          <Picker
-                            selectedValue={weightUnit}
-                            onValueChange={(itemValue) => setWeightUnit(itemValue)}
-                            style={styles.picker}
-                            dropdownIconColor="#fff"
-                            itemStyle={styles.pickerItem}
-                          >
-                            <Picker.Item label="kg" value="kg" />
-                            <Picker.Item label="lbs" value="lbs" />
-                          </Picker>
-                        </View>
-                      </View>
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                      <Text style={styles.label}>AGE</Text>
-                      <TextInput
-                        style={styles.input}
-                        placeholder="Enter age"
-                        placeholderTextColor="#aaa"
-                        value={age}
-                        onChangeText={setAge}
-                        keyboardType="numeric"
-                      />
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                      <Text style={styles.label}>GENDER</Text>
-                      <View style={styles.pickerContainer}>
-                        <Picker
-                          selectedValue={gender}
-                          onValueChange={(itemValue) => setGender(itemValue)}
-                          style={styles.fullPicker}
-                          dropdownIconColor="#fff"
-                          itemStyle={styles.pickerItem}
-                        >
-                          <Picker.Item label="Select gender" value="" />
-                          <Picker.Item label="Male" value="male" />
-                          <Picker.Item label="Female" value="female" />
-                          <Picker.Item label="Non-binary" value="non-binary" />
-                          <Picker.Item label="Prefer not to say" value="not-specified" />
-                        </Picker>
-                      </View>
-                    </View>
-
-                    <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-                      <LinearGradient
-                        colors={['#4CAF50', '#8BC34A']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.buttonGradient}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>WEIGHT</Text>
+                  <View style={styles.unitInputContainer}>
+                    <TextInput
+                      style={styles.unitInput}
+                      placeholder="Enter weight"
+                      placeholderTextColor="#aaa"
+                      value={weight}
+                      onChangeText={setWeight}
+                      keyboardType="numeric"
+                    />
+                    <View style={styles.unitPicker}>
+                      <Picker
+                        selectedValue={weightUnit}
+                        onValueChange={(itemValue) => setWeightUnit(itemValue)}
+                        style={styles.picker}
+                        dropdownIconColor="#fff"
                       >
-                        <Text style={styles.buttonText}>SAVE INFORMATION</Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  </>
-                )}
+                        <Picker.Item label="kg" value="kg" />
+                        <Picker.Item label="lbs" value="lbs" />
+                      </Picker>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>AGE</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter age"
+                    placeholderTextColor="#aaa"
+                    value={age}
+                    onChangeText={setAge}
+                    keyboardType="numeric"
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>GENDER</Text>
+                  <View style={styles.pickerContainer}>
+                    <Picker
+                      selectedValue={gender}
+                      onValueChange={(itemValue) => setGender(itemValue)}
+                      style={styles.fullPicker}
+                      dropdownIconColor="#fff"
+                    >
+                      <Picker.Item label="Select gender" value="" />
+                      <Picker.Item label="Male" value="male" />
+                      <Picker.Item label="Female" value="female" />
+                      <Picker.Item label="Non-binary" value="non-binary" />
+                      <Picker.Item label="Prefer not to say" value="not-specified" />
+                    </Picker>
+                  </View>
+                </View>
+
+                <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+                  <LinearGradient colors={['#4CAF50', '#8BC34A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.buttonGradient}>
+                    <Text style={styles.buttonText}>SAVE INFORMATION</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
               </Animated.View>
             </ScrollView>
           </KeyboardAvoidingView>
@@ -312,7 +217,6 @@ const HealthDataForm = () => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

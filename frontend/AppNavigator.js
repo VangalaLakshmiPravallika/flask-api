@@ -31,38 +31,37 @@ export default function AppNavigator() {
     <NavigationContainer>
       <Stack.Navigator
         initialRouteName="Login"
-        screenOptions={{ headerShown:true,gestureEnabled:true}}
+        screenOptions={{ headerShown: true, gestureEnabled: true }}
       >
-        <Stack.Screen name="Login" component={LoginScreen} options={{title:"Login",headerShown:false}}/>
-        <Stack.Screen name="Register" component={RegisterScreen} options={{ title:"Register",headerShown:false}}/>
+        <Stack.Screen name="Login" component={LoginScreen} options={{ title: "Login", headerShown: false }} />
+        <Stack.Screen name="Register" component={RegisterScreen} options={{ title: "Register", headerShown: false }} />
+        
+        {/* Redirecting to HealthDataForm after login */}
+        <Stack.Screen name="HealthDataForm" component={HealthDataForm} options={{ title: "Health Data", headerShown: false }} />
 
-        <Stack.Screen name="Home" component={HomeScreen} options={{title:"Home"}}/>
+        {/* Redirect to Home only after filling health data */}
+        <Stack.Screen name="Home" component={HomeScreen} options={{ title: "Home" }} />
 
-        <Stack.Screen name="Profile" component={ProfileScreen} options={{ title:"User Profile"}}/>
-        <Stack.Screen 
-          name="EditProfile" 
-          component={EditProfileScreen} 
-          options={{title:"Edit Profile",headerBackTitle:"Back to Profile"}} 
-        />
+        <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: "User Profile" }} />
+        <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: "Edit Profile", headerBackTitle: "Back to Profile" }} />
 
-        <Stack.Screen name="SleepTracker" component={SleepTracker} options={{ title:"Sleep Tracker" }} />
-        <Stack.Screen name="Achievements" component={AchievementsWall} options={{ title:"Achievements" }} />
+        <Stack.Screen name="SleepTracker" component={SleepTracker} options={{ title: "Sleep Tracker" }} />
+        <Stack.Screen name="Achievements" component={AchievementsWall} options={{ title: "Achievements" }} />
         <Stack.Screen name="StepCounter" component={StepCounter} options={{ title: "Step Counter" }} />
-        <Stack.Screen name="JoinGroup" component={JoinGroup} options={{ title:"Join a Group" }} />
-        <Stack.Screen name="PostAchievement" component={PostAchievement} options={{ title:"Post an Achievement" }} />
-        <Stack.Screen name="GroupPosts" component={GroupPosts} options={{ title:"Group Posts" }} />
+        <Stack.Screen name="JoinGroup" component={JoinGroup} options={{ title: "Join a Group" }} />
+        <Stack.Screen name="PostAchievement" component={PostAchievement} options={{ title: "Post an Achievement" }} />
+        <Stack.Screen name="GroupPosts" component={GroupPosts} options={{ title: "Group Posts" }} />
 
-        <Stack.Screen name="MealTracker" component={MealTracker} options={{ title:"Meal Tracker" }} />
-        <Stack.Screen name="MealSummary" component={MealSummary} options={{ title:"Meal Summary" }} />
+        <Stack.Screen name="MealTracker" component={MealTracker} options={{ title: "Meal Tracker" }} />
+        <Stack.Screen name="MealSummary" component={MealSummary} options={{ title: "Meal Summary" }} />
 
-        <Stack.Screen name="FitnessAssessment" component={FitnessAssessment} options={{ title:"Fitness Assessment" }} />
-        <Stack.Screen name="WorkoutPlan" component={WorkoutPlan} options={{ title:"Workout Plan" }} />
-        <Stack.Screen name="ProgressTracker" component={ProgressTracker} options={{ title:"Progress Tracker" }} />
+        <Stack.Screen name="FitnessAssessment" component={FitnessAssessment} options={{ title: "Fitness Assessment" }} />
+        <Stack.Screen name="WorkoutPlan" component={WorkoutPlan} options={{ title: "Workout Plan" }} />
+        <Stack.Screen name="ProgressTracker" component={ProgressTracker} options={{ title: "Progress Tracker" }} />
         <Stack.Screen name="StepHistory" component={StepHistory} options={{ title: "Step History" }} />
         <Stack.Screen name="ChatBot" component={ChatBotScreen} />
         <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
-        <Stack.Screen name="SoothingMusic" component={SoothingMusic} options={{ title:"Soothing Music" }} />
-
+        <Stack.Screen name="SoothingMusic" component={SoothingMusic} options={{ title: "Soothing Music" }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

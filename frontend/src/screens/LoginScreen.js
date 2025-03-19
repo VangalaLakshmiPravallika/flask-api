@@ -90,7 +90,7 @@ export default function LoginScreen({ navigation }) {
             useNativeDriver: true,
           }),
         ]).start(() => {
-          navigation.replace("Home");
+          navigation.replace("HealthDataForm");
         });
       } else {
         setFailedAttempts(failedAttempts + 1);
@@ -221,7 +221,7 @@ export default function LoginScreen({ navigation }) {
                   </TouchableOpacity>
                 )}
 
-                <TouchableOpacity onPress={() => navigation.navigate("HealthDataForm")}>
+                <TouchableOpacity onPress={() => navigation.navigate("Register")}>
                   <Text style={styles.registerText}>
                     New user? <Text style={styles.registerHighlight}>Create Account</Text>
                   </Text>

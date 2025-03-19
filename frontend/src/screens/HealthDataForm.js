@@ -1,399 +1,301 @@
 import React, { useState } from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  TextInput, 
-  TouchableOpacity, 
-  ScrollView, 
-  KeyboardAvoidingView, 
-  Platform,
-  SafeAreaView,
-  ImageBackground,
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
   Dimensions,
   Animated,
-  Alert
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation } from "@react-navigation/native";  // ✅ Import navigation
+import { StatusBar } from 'expo-status-bar';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native'; // ✅ Import navigation
 
 const { width } = Dimensions.get('window');
 
-const HealthDataForm = () => {
-  const navigation = useNavigation();  // ✅ Initialize navigation
+const OnboardingFlow = () => {
+  const navigation = useNavigation(); // ✅ Use navigation hook
+  const [currentStep, setCurrentStep] = useState(0);
+  const [animation] = useState(new Animated.Value(0));
+  const [userData, setUserData] = useState({
+    name: '',
+    age: '',
+    gender: '',
+    height: '',
+    weight: '',
+  });
 
   // Animation values
-  const [fadeAnim] = useState(new Animated.Value(0));
-  const [slideAnim] = useState(new Animated.Value(50));
-  
-  // State for form fields
-  const [height, setHeight] = useState('');
-  const [weight, setWeight] = useState('');
-  const [age, setAge] = useState('');
-  const [gender, setGender] = useState('');
-  const [heightUnit, setHeightUnit] = useState('cm');
-  const [weightUnit, setWeightUnit] = useState('kg');
+  const slideValue = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [width, 0],
+  });
 
-  // Run animations on component mount
+  const fadeValue = animation.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0, 0.5, 1],
+  });
+
+  const animateIn = () => {
+    Animated.timing(animation, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const animateOut = (callback) => {
+    Animated.timing(animation, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      animation.setValue(0);
+      callback();
+    });
+  };
+
   React.useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true
-      })
-    ]).start();
-  }, []);
+    animateIn();
+  }, [currentStep]);
 
-  // Handle form submission
-  const handleSubmit = async () => {
-    if (!height || !weight || !age || !gender) {
-      Alert.alert("Error", "Please fill in all fields");
-      return;
+  const handleNext = () => {
+    if (validateCurrentStep()) {
+      animateOut(() => {
+        setCurrentStep(currentStep + 1);
+      });
     }
+  };
 
-    const heightNum = parseFloat(height);
-    const weightNum = parseFloat(weight);
-    const ageNum = parseInt(age);
-
-    if (isNaN(heightNum) || isNaN(weightNum) || isNaN(ageNum)) {
-      Alert.alert("Error", "Please enter valid numbers for height, weight, and age");
-      return;
+  const handleBack = () => {
+    if (currentStep > 0) {
+      animateOut(() => {
+        setCurrentStep(currentStep - 1);
+      });
     }
+  };
 
+  const validateCurrentStep = () => {
+    const { name, age, gender, height, weight } = userData;
+    
+    switch (currentStep) {
+      case 0:
+        return name.trim().length > 0;
+      case 1:
+        return age.trim().length > 0 && !isNaN(Number(age));
+      case 2:
+        return gender.trim().length > 0;
+      case 3:
+        return height.trim().length > 0 && !isNaN(Number(height));
+      case 4:
+        return weight.trim().length > 0 && !isNaN(Number(weight));
+      default:
+        return true;
+    }
+  };
+
+  const updateUserData = (field, value) => {
+    setUserData({
+      ...userData,
+      [field]: value,
+    });
+  };
+
+  const handleFinish = async () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
-
-      const response = await fetch("https://healthfitnessbackend.onrender.com/api/save-health-data", {
+  
+      const response = await fetch("https://healthfitnessbackend.onrender.com/api/store-profile", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          height: heightNum,
-          weight: weightNum,
-          age: ageNum,
-          gender,
-        }),
+        body: JSON.stringify(userData),
       });
-
+  
       const data = await response.json();
-
+  
       if (response.ok) {
-        Alert.alert("Success", `Health Data Saved! Your BMI: ${data.bmi}`);
-        
-        // ✅ Redirect to Home after submission
-        navigation.replace("Home");
-
+        Alert.alert("Success", `Profile saved! Your BMI: ${data.bmi}`);
+        navigation.replace("Home"); 
       } else {
-        Alert.alert("Error", data.error || "Failed to save health data");
+        Alert.alert("Error", data.error || "Failed to store profile.");
       }
     } catch (error) {
-      console.error("Error saving health data:", error);
+      console.error("Error saving profile:", error);
       Alert.alert("Error", "Something went wrong!");
     }
   };
+  
 
+  const getStepContent = () => {
+    switch (currentStep) {
+      case 0:
+        return (
+          <NameStep 
+            name={userData.name} 
+            updateName={(value) => updateUserData('name', value)} 
+          />
+        );
+      case 1:
+        return (
+          <AgeStep 
+            age={userData.age} 
+            updateAge={(value) => updateUserData('age', value)} 
+          />
+        );
+      case 2:
+        return (
+          <GenderStep 
+            gender={userData.gender} 
+            updateGender={(value) => updateUserData('gender', value)} 
+          />
+        );
+      case 3:
+        return (
+          <HeightStep 
+            height={userData.height} 
+            updateHeight={(value) => updateUserData('height', value)} 
+          />
+        );
+      case 4:
+        return (
+          <WeightStep 
+            weight={userData.weight} 
+            updateWeight={(value) => updateUserData('weight', value)} 
+          />
+        );
+      case 5:
+        return <SummaryStep userData={userData} />;
+      default:
+        return null;
+    }
+  };
+
+  const isLastStep = currentStep === 5;
+  
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar style="light" />
-      <ImageBackground 
-        source={{ uri: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80' }} 
-        style={styles.backgroundImage}
-        blurRadius={3}
+      <LinearGradient
+        colors={['#4568DC', '#B06AB3']}
+        style={styles.background}
+      />
+      
+      <View style={styles.headerContainer}>
+        <Text style={styles.stepTitle}>Step {currentStep + 1}/6</Text>
+      </View>
+      
+      <Animated.View 
+        style={[
+          styles.contentContainer,
+          {
+            transform: [{ translateX: slideValue }],
+            opacity: fadeValue,
+          }
+        ]}
       >
-        <LinearGradient
-          colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.7)']}
-          style={styles.gradient}
+        {getStepContent()}
+      </Animated.View>
+      
+      <View style={styles.buttonContainer}>
+        {currentStep > 0 && (
+          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+        )}
+        
+        <TouchableOpacity 
+          style={[
+            styles.nextButton,
+            !validateCurrentStep() && styles.disabledButton,
+            isLastStep && styles.doneButton
+          ]}
+          onPress={isLastStep ? handleFinish : handleNext}
+          disabled={!validateCurrentStep()}
         >
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardAvoid}>
-            <ScrollView contentContainerStyle={styles.scrollContainer}>
-              <Animated.View style={[styles.formContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-                <View style={styles.headerContainer}>
-                  <Text style={styles.title}>HEALTH PROFILE</Text>
-                  <View style={styles.divider} />
-                  <Text style={styles.subtitle}>Your journey to fitness starts here</Text>
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>HEIGHT</Text>
-                  <View style={styles.unitInputContainer}>
-                    <TextInput
-                      style={styles.unitInput}
-                      placeholder="Enter height"
-                      placeholderTextColor="#aaa"
-                      value={height}
-                      onChangeText={setHeight}
-                      keyboardType="numeric"
-                    />
-                    <View style={styles.unitPicker}>
-                      <Picker
-                        selectedValue={heightUnit}
-                        onValueChange={(itemValue) => setHeightUnit(itemValue)}
-                        style={styles.picker}
-                        dropdownIconColor="#fff"
-                      >
-                        <Picker.Item label="cm" value="cm" />
-                        <Picker.Item label="feet" value="feet" />
-                      </Picker>
-                    </View>
-                  </View>
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>WEIGHT</Text>
-                  <View style={styles.unitInputContainer}>
-                    <TextInput
-                      style={styles.unitInput}
-                      placeholder="Enter weight"
-                      placeholderTextColor="#aaa"
-                      value={weight}
-                      onChangeText={setWeight}
-                      keyboardType="numeric"
-                    />
-                    <View style={styles.unitPicker}>
-                      <Picker
-                        selectedValue={weightUnit}
-                        onValueChange={(itemValue) => setWeightUnit(itemValue)}
-                        style={styles.picker}
-                        dropdownIconColor="#fff"
-                      >
-                        <Picker.Item label="kg" value="kg" />
-                        <Picker.Item label="lbs" value="lbs" />
-                      </Picker>
-                    </View>
-                  </View>
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>AGE</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter age"
-                    placeholderTextColor="#aaa"
-                    value={age}
-                    onChangeText={setAge}
-                    keyboardType="numeric"
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>GENDER</Text>
-                  <View style={styles.pickerContainer}>
-                    <Picker
-                      selectedValue={gender}
-                      onValueChange={(itemValue) => setGender(itemValue)}
-                      style={styles.fullPicker}
-                      dropdownIconColor="#fff"
-                    >
-                      <Picker.Item label="Select gender" value="" />
-                      <Picker.Item label="Male" value="male" />
-                      <Picker.Item label="Female" value="female" />
-                      <Picker.Item label="Non-binary" value="non-binary" />
-                      <Picker.Item label="Prefer not to say" value="not-specified" />
-                    </Picker>
-                  </View>
-                </View>
-
-                <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-                  <LinearGradient colors={['#4CAF50', '#8BC34A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.buttonGradient}>
-                    <Text style={styles.buttonText}>SAVE INFORMATION</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </Animated.View>
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </LinearGradient>
-      </ImageBackground>
-    </SafeAreaView>
+          <Text style={styles.nextButtonText}>
+            {isLastStep ? 'START MY JOURNEY' : 'CONTINUE'}
+          </Text>
+          {!isLastStep && <Ionicons name="arrow-forward" size={24} color="#fff" />}
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  backgroundImage: {
-    flex: 1,
-    width: '100%',
-  },
-  gradient: {
-    flex: 1,
-  },
-  keyboardAvoid: {
-    flex: 1,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
-  formContainer: {
-    borderRadius: 15,
-    padding: 25,
-    backgroundColor: 'rgba(20, 20, 20, 0.8)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.44,
-    shadowRadius: 10.32,
-    elevation: 16,
+  background: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
   },
   headerContainer: {
+    width: '100%',
     alignItems: 'center',
-    marginBottom: 25,
+    paddingHorizontal: 20,
+    marginTop: 20,
   },
-  title: {
-    fontSize: 28,
+  stepTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
-    letterSpacing: 2,
+    textAlign: 'center',
   },
-  subtitle: {
-    fontSize: 14,
-    color: '#bbb',
-    marginTop: 5,
-    letterSpacing: 1,
+  contentContainer: {
+    width: '100%',
+    flex: 1,
+    paddingHorizontal: 20,
+    justifyContent: 'center',
   },
-  divider: {
-    width: width * 0.3,
-    height: 3,
-    backgroundColor: '#4CAF50',
-    marginVertical: 10,
-    borderRadius: 2,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    marginBottom: 8,
-    color: '#bbb',
-    fontWeight: 'bold',
-    letterSpacing: 1,
-  },
-  input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    fontSize: 16,
-    color: '#fff',
-  },
-  unitInputContainer: {
+  buttonContainer: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
-  unitInput: {
-    flex: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    fontSize: 16,
-    color: '#fff',
+  backButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  unitPicker: {
+  nextButton: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
     flex: 1,
     marginLeft: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    overflow: 'hidden',
   },
-  pickerContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    overflow: 'hidden',
+  disabledButton: {
+    opacity: 0.5,
   },
-  picker: {
-    height: 50,
-    color: '#fff',
+  doneButton: {
+    backgroundColor: '#FF4500',
   },
-  pickerItem: {
-    color: '#fff',
-  },
-  fullPicker: {
-    height: 50,
-    color: '#fff',
-  },
-  button: {
-    borderRadius: 10,
-    overflow: 'hidden',
-    marginTop: 20,
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-  },
-  buttonGradient: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: 'white',
+  nextButtonText: {
+    color: '#333',
     fontSize: 16,
     fontWeight: 'bold',
-    letterSpacing: 1,
-  },
-  summaryContainer: {
-    marginTop: 10,
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    textAlign: 'center',
-    color: '#fff',
-    letterSpacing: 1,
-  },
-  summaryCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 10,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    marginBottom: 15,
-  },
-  summaryItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: '#bbb',
-    marginBottom: 5,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-  },
-  summaryValue: {
-    fontSize: 18,
-    color: '#fff',
-    fontWeight: 'bold',
+    marginRight: 10,
   },
 });
 

@@ -114,20 +114,17 @@ const HealthDataForm = () => {
     weight: '',
   });
 
+  // Animation interpolation
   const slideValue = animation.interpolate({
     inputRange: [0, 1],
     outputRange: [width, 0],
   });
 
-  const fadeValue = animation.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0, 0.5, 1],
-  });
-
+  // Run animation when currentStep changes
   useEffect(() => {
     Animated.timing(animation, {
       toValue: 1,
-      duration: 500,
+      duration: 300,
       useNativeDriver: true,
     }).start();
   }, [currentStep]);
@@ -139,7 +136,6 @@ const HealthDataForm = () => {
         duration: 300,
         useNativeDriver: true,
       }).start(() => {
-        animation.setValue(0);
         setCurrentStep(currentStep + 1);
       });
     }
@@ -152,7 +148,6 @@ const HealthDataForm = () => {
         duration: 300,
         useNativeDriver: true,
       }).start(() => {
-        animation.setValue(0);
         setCurrentStep(currentStep - 1);
       });
     }
@@ -230,8 +225,15 @@ const HealthDataForm = () => {
       <StatusBar style="light" />
       <LinearGradient colors={['#4568DC', '#B06AB3']} style={styles.background} />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardAvoid}>
-        <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-          <Animated.View style={[styles.contentContainer, { transform: [{ translateX: slideValue }], opacity: fadeValue }]}>
+        <View style={styles.scrollContainer}>
+          <Animated.View
+            style={[
+              styles.contentContainer,
+              {
+                transform: [{ translateX: slideValue }],
+              },
+            ]}
+          >
             {getStepContent()}
           </Animated.View>
           <View style={styles.buttonContainer}>
@@ -248,7 +250,7 @@ const HealthDataForm = () => {
               <Text style={styles.nextButtonText}>{currentStep === 5 ? 'FINISH' : 'NEXT'}</Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -259,7 +261,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   background: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 },
   keyboardAvoid: { flex: 1 },
-  scrollContainer: { flexGrow: 1, justifyContent: 'center', padding: 20 },
+  scrollContainer: { flex: 1, justifyContent: 'center', padding: 20 },
   contentContainer: { alignItems: 'center', justifyContent: 'center' },
   stepContainer: { width: '100%', marginBottom: 20 },
   label: { fontSize: 16, marginBottom: 10, color: '#fff' },

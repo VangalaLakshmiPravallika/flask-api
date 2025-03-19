@@ -89,7 +89,7 @@ const WeightStep = ({ weight, updateWeight }) => (
   </View>
 );
 
-const SummaryStep = ({ userData, bmi }) => (
+const SummaryStep = ({ userData }) => (
   <View style={styles.stepContainer}>
     <Text style={styles.label}>Summary</Text>
     <Text style={styles.summaryText}>Name: {userData.name}</Text>
@@ -97,7 +97,7 @@ const SummaryStep = ({ userData, bmi }) => (
     <Text style={styles.summaryText}>Gender: {userData.gender}</Text>
     <Text style={styles.summaryText}>Height: {userData.height} cm</Text>
     <Text style={styles.summaryText}>Weight: {userData.weight} kg</Text>
-    <Text style={styles.summaryText}>BMI: {bmi}</Text>
+    <Text style={styles.summaryText}>BMI: {userData.bmi}</Text> {/* Display BMI */}
   </View>
 );
 
@@ -112,8 +112,8 @@ const HealthDataForm = () => {
     gender: '',
     height: '',
     weight: '',
+    bmi: '', // Add BMI to userData
   });
-  const [bmi, setBmi] = useState(null); // State to store BMI
 
   // Animation interpolation
   const slideValue = animation.interpolate({
@@ -129,42 +129,6 @@ const HealthDataForm = () => {
       useNativeDriver: true,
     }).start();
   }, [currentStep]);
-
-  // Fetch BMI when height and weight are available
-  useEffect(() => {
-    if (currentStep === 5 && userData.height && userData.weight) {
-      fetchBMI();
-    }
-  }, [currentStep]);
-
-  const fetchBMI = async () => {
-    try {
-      const token = await AsyncStorage.getItem('authToken');
-
-      const response = await fetch('https://healthfitnessbackend.onrender.com/api/get-bmi', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          height: userData.height,
-          weight: userData.weight,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setBmi(data.bmi); // Set BMI in state
-      } else {
-        Alert.alert('Error', data.error || 'Failed to calculate BMI');
-      }
-    } catch (error) {
-      console.error('Error fetching BMI:', error);
-      Alert.alert('Error', 'Something went wrong while calculating BMI');
-    }
-  };
 
   const handleNext = () => {
     if (validateCurrentStep()) {
@@ -212,7 +176,7 @@ const HealthDataForm = () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
 
-      const response = await fetch('https://healthfitnessbackend.onrender.com/api/save-health-data', {
+      const response = await fetch('https://healthfitnessbackend.onrender.com/api/store-profile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -224,13 +188,14 @@ const HealthDataForm = () => {
       const data = await response.json();
 
       if (response.ok) {
-        Alert.alert('Success', `Health Data Saved! Your BMI: ${bmi}`);
-        navigation.replace('Home'); // Redirect to HomeScreen
+        // Update userData with BMI from the response
+        setUserData((prevData) => ({ ...prevData, bmi: data.bmi }));
+        Alert.alert('Success', `Health Data Saved! Your BMI: ${data.bmi}`);
+        navigation.replace('Home'); // Ensure 'Home' is the correct route name
       } else {
         Alert.alert('Error', data.error || 'Failed to save health data');
       }
     } catch (error) {
-      console.error('Error:', error); // Log the error for debugging
       Alert.alert('Error', 'Something went wrong!');
     }
   };
@@ -252,7 +217,7 @@ const HealthDataForm = () => {
       case 4:
         return <WeightStep weight={userData.weight} updateWeight={(value) => updateUserData('weight', value)} />;
       case 5:
-        return <SummaryStep userData={userData} bmi={bmi} />;
+        return <SummaryStep userData={userData} />;
       default:
         return null;
     }

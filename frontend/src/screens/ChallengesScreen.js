@@ -1,147 +1,193 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { 
-  View, Text, TouchableOpacity, FlatList, StyleSheet, TextInput, Alert, Modal 
+  View, Text, TouchableOpacity, FlatList, Alert, TextInput, Modal, StyleSheet, ActivityIndicator, ScrollView 
 } from "react-native";
+import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+
+const API_URL = "https://healthfitnessbackend.onrender.com/api"; L
 
 const ChallengesScreen = () => {
   const [challenges, setChallenges] = useState([]);
-  const [newChallenge, setNewChallenge] = useState("");
+  const [joinedChallenges, setJoinedChallenges] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [selectedChallenge, setSelectedChallenge] = useState(null);
+  const [progress, setProgress] = useState({});
+  const [newChallenge, setNewChallenge] = useState({ name: "", description: "", duration_days: "" });
   const [modalVisible, setModalVisible] = useState(false);
+  const navigation = useNavigation();
 
   useEffect(() => {
-    loadChallenges();
+    fetchChallenges();
   }, []);
 
-  // ✅ Load challenges from storage
-  const loadChallenges = async () => {
+  const fetchChallenges = async () => {
     try {
-      const storedChallenges = await AsyncStorage.getItem("challenges");
-      if (storedChallenges) {
-        setChallenges(JSON.parse(storedChallenges));
-      } else {
-        const defaultChallenges = [
-          { id: "1", title: "🏃 10,000 Steps Daily", progress: 0 },
-          { id: "2", title: "💧 Drink 3L Water Daily", progress: 0 },
-          { id: "3", title: "🏋️ Workout 5 Days a Week", progress: 0 },
-          { id: "4", title: "🍎 Eat 5 Servings of Fruits/Veggies", progress: 0 },
-          { id: "5", title: "🛌 Sleep 8 Hours Daily", progress: 0 }
-        ];
-        await AsyncStorage.setItem("challenges", JSON.stringify(defaultChallenges));
-        setChallenges(defaultChallenges);
-      }
+      setLoading(true);
+      const token = await AsyncStorage.getItem("authToken");
+      const response = await axios.get(`${API_URL}/get-challenges`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setChallenges(response.data.challenges);
     } catch (error) {
       Alert.alert("Error", "Failed to load challenges.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // ✅ Add a new challenge
+  const joinChallenge = async (challengeName) => {
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      await axios.post(`${API_URL}/join-challenge`, { challenge_name: challengeName }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setJoinedChallenges((prev) => ({ ...prev, [challengeName]: true }));
+      Alert.alert("Success", `Joined '${challengeName}' challenge!`);
+    } catch (error) {
+      Alert.alert("Error", "Failed to join challenge.");
+    }
+  };
+
+  const updateProgress = async (challengeName) => {
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      await axios.post(`${API_URL}/update-challenge-progress`, { challenge_name: challengeName, progress: 1 }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setProgress((prev) => ({ ...prev, [challengeName]: (prev[challengeName] || 0) + 1 }));
+      Alert.alert("Progress Updated!", `Your progress for '${challengeName}' has been updated.`);
+    } catch (error) {
+      Alert.alert("Error", "Failed to update progress.");
+    }
+  };
+
+  const resetProgress = async (challengeName) => {
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      await axios.post(`${API_URL}/reset-challenge-progress`, { challenge_name: challengeName }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setProgress((prev) => ({ ...prev, [challengeName]: 0 }));
+      Alert.alert("Progress Reset", `Your progress for '${challengeName}' has been reset.`);
+    } catch (error) {
+      Alert.alert("Error", "Failed to reset progress.");
+    }
+  };
+
+  const fetchLeaderboard = async (challengeName) => {
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      const response = await axios.get(`${API_URL}/leaderboard/${challengeName}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSelectedChallenge({ name: challengeName, leaderboard: response.data.leaderboard });
+    } catch (error) {
+      Alert.alert("Error", "Failed to load leaderboard.");
+    }
+  };
+
   const addChallenge = async () => {
-    if (!newChallenge.trim()) {
-      Alert.alert("Error", "Challenge title cannot be empty.");
+    if (!newChallenge.name || !newChallenge.description || !newChallenge.duration_days) {
+      Alert.alert("Error", "Please fill all fields.");
       return;
     }
-    const updatedChallenges = [
-      ...challenges, 
-      { id: String(challenges.length + 1), title: newChallenge, progress: 0 }
-    ];
-    setChallenges(updatedChallenges);
-    await AsyncStorage.setItem("challenges", JSON.stringify(updatedChallenges));
-    setNewChallenge("");
-    setModalVisible(false);
-  };
 
-  // ✅ Update progress
-  const updateProgress = async (id) => {
-    const updatedChallenges = challenges.map(challenge =>
-      challenge.id === id ? { ...challenge, progress: Math.min(challenge.progress + 10, 100) } : challenge
-    );
-    setChallenges(updatedChallenges);
-    await AsyncStorage.setItem("challenges", JSON.stringify(updatedChallenges));
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      await axios.post(`${API_URL}/add-challenge`, newChallenge, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setModalVisible(false);
+      fetchChallenges();
+      Alert.alert("Success", "Challenge created successfully!");
+    } catch (error) {
+      Alert.alert("Error", "Failed to create challenge.");
+    }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>🏆 Fitness Challenges</Text>
+      <ScrollView>
+        <Text style={styles.title}>Challenges</Text>
 
-      <FlatList
-        data={challenges}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.challengeText}>{item.title}</Text>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${item.progress}%` }]} />
-            </View>
-            <Text style={styles.progressText}>{item.progress}% Completed</Text>
-            <TouchableOpacity 
-              style={styles.joinButton} 
-              onPress={() => updateProgress(item.id)}
-            >
-              <Text style={styles.buttonText}>✅ Update Progress</Text>
-            </TouchableOpacity>
-          </View>
+        {loading ? (
+          <ActivityIndicator size="large" color="#007bff" />
+        ) : (
+          <FlatList
+            data={challenges}
+            keyExtractor={(item) => item.name}
+            renderItem={({ item }) => (
+              <View style={styles.challengeCard}>
+                <Text style={styles.challengeName}>{item.name}</Text>
+                <Text style={styles.challengeDescription}>{item.description}</Text>
+                <Text style={styles.challengeDuration}>Duration: {item.duration_days} days</Text>
+
+                {!joinedChallenges[item.name] ? (
+                  <TouchableOpacity style={styles.joinButton} onPress={() => joinChallenge(item.name)}>
+                    <Text style={styles.buttonText}>Join Challenge</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View>
+                    <TouchableOpacity style={styles.progressButton} onPress={() => updateProgress(item.name)}>
+                      <Text style={styles.buttonText}>Update Progress</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.resetButton} onPress={() => resetProgress(item.name)}>
+                      <Text style={styles.buttonText}>Reset Progress</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.leaderboardButton} onPress={() => fetchLeaderboard(item.name)}>
+                      <Text style={styles.buttonText}>View Leaderboard</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            )}
+          />
         )}
-      />
 
-      {/* ✅ Add Challenge Button */}
-      <TouchableOpacity 
-        style={styles.addButton} 
-        onPress={() => setModalVisible(true)}
-      >
-        <Ionicons name="add-circle" size={50} color="#007bff" />
-      </TouchableOpacity>
+        {/* Add New Challenge Button */}
+        <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+          <Ionicons name="add-circle-outline" size={30} color="#fff" />
+          <Text style={styles.addButtonText}>Add Challenge</Text>
+        </TouchableOpacity>
 
-      {/* ✅ Add Challenge Modal */}
-      <Modal animationType="slide" transparent={true} visible={modalVisible}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add New Challenge</Text>
-            <TextInput
-              placeholder="Enter Challenge Title"
-              style={styles.input}
-              value={newChallenge}
-              onChangeText={setNewChallenge}
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.modalButton} onPress={addChallenge}>
-                <Text style={styles.modalButtonText}>Add</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.modalButton} onPress={() => setModalVisible(false)}>
-                <Text style={styles.modalButtonText}>Cancel</Text>
+        {/* Leaderboard Modal */}
+        {selectedChallenge && (
+          <Modal animationType="slide" visible={true} onRequestClose={() => setSelectedChallenge(null)}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>{selectedChallenge.name} Leaderboard</Text>
+              <FlatList
+                data={selectedChallenge.leaderboard}
+                keyExtractor={(item) => item.user}
+                renderItem={({ item, index }) => (
+                  <Text style={styles.leaderboardItem}>{index + 1}. {item.user} - {item.progress} days</Text>
+                )}
+              />
+              <TouchableOpacity onPress={() => setSelectedChallenge(null)}>
+                <Text style={styles.closeModal}>Close</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
-      </Modal>
+          </Modal>
+        )}
+      </ScrollView>
     </View>
   );
 };
 
-// ✅ Styles
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f7f7f7", padding: 16 },
-  title: { fontSize: 24, fontWeight: "bold", textAlign: "center", marginBottom: 20 },
-  card: { backgroundColor: "#fff", padding: 16, marginBottom: 12, borderRadius: 10, elevation: 3 },
-  challengeText: { fontSize: 18, fontWeight: "bold", marginBottom: 8 },
-  progressBar: { height: 10, backgroundColor: "#ddd", borderRadius: 5, overflow: "hidden", marginVertical: 8 },
-  progressFill: { height: "100%", backgroundColor: "#007bff" },
-  progressText: { fontSize: 14, color: "#555", textAlign: "center", marginBottom: 8 },
-  joinButton: { backgroundColor: "#007bff", padding: 10, borderRadius: 8, alignItems: "center" },
-  buttonText: { color: "#fff", fontWeight: "bold" },
-  
-  // ✅ Add Challenge Button
-  addButton: { position: "absolute", bottom: 20, right: 20 },
-  
-  // ✅ Modal Styles
-  modalContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)" },
-  modalContent: { backgroundColor: "#fff", padding: 20, borderRadius: 10, width: "80%", alignItems: "center" },
-  modalTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 10 },
-  input: { width: "100%", borderWidth: 1, borderColor: "#ddd", borderRadius: 8, padding: 10, marginBottom: 10 },
-  modalButtons: { flexDirection: "row", justifyContent: "space-between", width: "100%" },
-  modalButton: { flex: 1, padding: 10, alignItems: "center", marginHorizontal: 5, backgroundColor: "#007bff", borderRadius: 8 },
-  modalButtonText: { color: "#fff", fontWeight: "bold" },
+  container: { flex: 1, padding: 20, backgroundColor: "#f0f2f5" },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 10 },
+  challengeCard: { backgroundColor: "#fff", padding: 15, marginBottom: 10, borderRadius: 8 },
+  challengeName: { fontSize: 18, fontWeight: "bold" },
+  challengeDescription: { fontSize: 14, color: "#555" },
+  challengeDuration: { fontSize: 12, color: "#777" },
+  joinButton: { backgroundColor: "#28a745", padding: 10, borderRadius: 5, marginTop: 5 },
+  progressButton: { backgroundColor: "#007bff", padding: 10, borderRadius: 5, marginTop: 5 },
+  resetButton: { backgroundColor: "#dc3545", padding: 10, borderRadius: 5, marginTop: 5 },
+  leaderboardButton: { backgroundColor: "#17a2b8", padding: 10, borderRadius: 5, marginTop: 5 },
+  buttonText: { color: "#fff", textAlign: "center", fontWeight: "bold" },
 });
 
 export default ChallengesScreen;

@@ -12,8 +12,12 @@ const JoinGroup = () => {
   const [groups, setGroups] = useState([]); 
   const [userGroups, setUserGroups] = useState([]); 
   const [loading, setLoading] = useState(true);
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
+  const [groupToDelete, setGroupToDelete] = useState("");
+  const [selectedGroupDetails, setSelectedGroupDetails] = useState(null);
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -113,11 +117,56 @@ const JoinGroup = () => {
 
       Alert.alert("✅ Success", response.data.message);
       setGroups([...groups, { name: newGroupName }]);
-      setIsModalVisible(false);
+      setIsCreateModalVisible(false);
       setNewGroupName("");
     } catch (error) {
       console.error("Error creating group:", error.response?.data);
       Alert.alert("⚠️ Error", error.response?.data?.error || "Could not create group");
+    }
+  };
+
+  const deleteGroup = async () => {
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        Alert.alert("⚠️ Login Required", "Please log in.");
+        return;
+      }
+
+      const response = await axios.post(
+        "https://healthfitnessbackend.onrender.com/api/delete-group",
+        { group_name: groupToDelete },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      Alert.alert("✅ Success", response.data.message);
+      setGroups(groups.filter(group => group.name !== groupToDelete));
+      setIsDeleteModalVisible(false);
+      setGroupToDelete("");
+    } catch (error) {
+      console.error("Error deleting group:", error.response?.data);
+      Alert.alert("⚠️ Error", error.response?.data?.error || "Could not delete group");
+    }
+  };
+
+  const fetchGroupDetails = async (groupName) => {
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        Alert.alert("⚠️ Login Required", "Please log in.");
+        return;
+      }
+
+      const response = await axios.get(
+        `https://healthfitnessbackend.onrender.com/api/get-group-details/${groupName}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setSelectedGroupDetails(response.data);
+      setIsDetailsModalVisible(true);
+    } catch (error) {
+      console.error("Error fetching group details:", error.response?.data);
+      Alert.alert("⚠️ Error", error.response?.data?.error || "Could not fetch group details");
     }
   };
 
@@ -135,7 +184,7 @@ const JoinGroup = () => {
             <Text style={styles.subtitle}>Join groups to share your journey</Text>
             <TouchableOpacity
               style={styles.createGroupButton}
-              onPress={() => setIsModalVisible(true)}
+              onPress={() => setIsCreateModalVisible(true)}
             >
               <Text style={styles.createGroupButtonText}>Create Group</Text>
             </TouchableOpacity>
@@ -188,6 +237,23 @@ const JoinGroup = () => {
                         >
                           <Text style={styles.leaveButtonText}>Leave</Text>
                         </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.detailsButton}
+                          onPress={() => fetchGroupDetails(item.name)}
+                        >
+                          <Text style={styles.detailsButtonText}>View Details</Text>
+                        </TouchableOpacity>
+                        {userGroups.includes(item.name) && (
+                          <TouchableOpacity
+                            style={styles.deleteButton}
+                            onPress={() => {
+                              setGroupToDelete(item.name);
+                              setIsDeleteModalVisible(true);
+                            }}
+                          >
+                            <Text style={styles.deleteButtonText}>Delete Group</Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
                     )}
                   </LinearGradient>
@@ -200,10 +266,10 @@ const JoinGroup = () => {
 
       {/* Modal for Creating a Group */}
       <Modal
-        visible={isModalVisible}
+        visible={isCreateModalVisible}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setIsModalVisible(false)}
+        onRequestClose={() => setIsCreateModalVisible(false)}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
@@ -215,7 +281,46 @@ const JoinGroup = () => {
               onChangeText={setNewGroupName}
             />
             <Button title="Create" onPress={createGroup} />
-            <Button title="Cancel" onPress={() => setIsModalVisible(false)} />
+            <Button title="Cancel" onPress={() => setIsCreateModalVisible(false)} />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal for Deleting a Group */}
+      <Modal
+        visible={isDeleteModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsDeleteModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Delete Group</Text>
+            <Text style={styles.modalText}>Are you sure you want to delete the group "{groupToDelete}"?</Text>
+            <Button title="Delete" onPress={deleteGroup} />
+            <Button title="Cancel" onPress={() => setIsDeleteModalVisible(false)} />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal for Viewing Group Details */}
+      <Modal
+        visible={isDetailsModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsDetailsModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Group Details</Text>
+            {selectedGroupDetails && (
+              <>
+                <Text style={styles.modalText}>Name: {selectedGroupDetails.name}</Text>
+                <Text style={styles.modalText}>Members: {selectedGroupDetails.members.length}</Text>
+                <Text style={styles.modalText}>Posts: {selectedGroupDetails.posts.length}</Text>
+              </>
+            )}
+            <Button title="Close" onPress={() => setIsDetailsModalVisible(false)} />
           </View>
         </View>
       </Modal>
@@ -359,6 +464,30 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 15,
   },
+  detailsButton: {
+    backgroundColor: "#FFA500",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  detailsButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  deleteButton: {
+    backgroundColor: "#FF4500",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  deleteButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
   modalContainer: {
     flex: 1,
     justifyContent: "center",
@@ -375,6 +504,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 15,
+    textAlign: "center",
+  },
+  modalText: {
+    fontSize: 16,
+    marginBottom: 10,
     textAlign: "center",
   },
   input: {

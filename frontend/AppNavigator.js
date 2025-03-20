@@ -23,6 +23,9 @@ import StepCounter from "./src/screens/StepCounter";
 import StepHistory from "./src/screens/StepHistory"; 
 import ChatBotScreen from "./src/screens/ChatBotScreen";
 import NotificationsScreen from "./src/screens/NotificationsScreen";
+import ChallengesScreen from "./src/screens/ChallengesScreen";
+import ChallengeDetailsScreen from "./src/screens/ChallengeDetailsScreen";
+import LeaderboardScreen from "./src/screens/LeaderboardScreen";
 
 const Stack = createStackNavigator();
 
@@ -62,6 +65,10 @@ export default function AppNavigator() {
         <Stack.Screen name="ChatBot" component={ChatBotScreen} />
         <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
         <Stack.Screen name="SoothingMusic" component={SoothingMusic} options={{ title: "Soothing Music" }} />
+        <Stack.Screen name="Challenges" component={ChallengesScreen} options={{ title: "Challenges" }} />
+        <Stack.Screen name="ChallengeDetails" component={ChallengeDetailsScreen} options={{ title: "Challenge Details" }} />
+        <Stack.Screen name="Leaderboard" component={LeaderboardScreen} options={{ title: "Leaderboard" }} />
+        
       </Stack.Navigator>
     </NavigationContainer>
   );

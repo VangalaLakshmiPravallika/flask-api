@@ -339,7 +339,7 @@ const SleepTracker = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
-        source={require("../assets/night-sky.jpg")}
+        source={require("../../assets/night-sky.jpeg")}
         style={styles.backgroundImage}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -352,7 +352,7 @@ const SleepTracker = () => {
             <View style={styles.loadingContainer}>
               <LottieView
                 ref={animation}
-                source={require("../assets/sleep-loading.json")}
+                source={require("../../assets/Animation - 1742450564905.json")}
                 style={styles.loadingAnimation}
                 autoPlay
                 loop

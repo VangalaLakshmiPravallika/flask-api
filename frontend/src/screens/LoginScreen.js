@@ -13,11 +13,13 @@ import {
   KeyboardAvoidingView,
   ImageBackground,
   SafeAreaView,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
+import axios from "axios";
 
 const { width, height } = Dimensions.get("window");
 
@@ -66,40 +68,45 @@ export default function LoginScreen({ navigation }) {
     setIsLoading(true);
 
     try {
-      const response = await fetch("https://healthfitnessbackend.onrender.com/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+      const response = await axios.post("https://healthfitnessbackend.onrender.com/api/login", {
+        email,
+        password,
       });
 
-      const data = await response.json();
+      if (response.status === 200) {
+        const { token } = response.data;
+        await AsyncStorage.setItem("authToken", token);
 
-      if (response.ok) {
-        await AsyncStorage.setItem("authToken", data.token);
-        
-        // Success animation
-        Animated.sequence([
-          Animated.timing(fadeAnim, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-        ]).start(() => {
-          navigation.replace("HealthDataForm");
+        // Fetch user profile after successful login
+        const profileResponse = await axios.get("https://healthfitnessbackend.onrender.com/api/get-profile", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
+
+        if (profileResponse.status === 200) {
+          const profileData = profileResponse.data;
+
+          // Check if profile is complete
+          if (profileData.name && profileData.age && profileData.gender && profileData.height && profileData.weight) {
+            // Profile is complete, redirect to Home
+            navigation.replace("Home");
+          } else {
+            // Profile is incomplete, redirect to HealthDataForm
+            navigation.replace("HealthDataForm");
+          }
+        } else {
+          throw new Error("Failed to fetch profile data");
+        }
       } else {
         setFailedAttempts(failedAttempts + 1);
         if (failedAttempts >= 2) {
           setShowForgotPassword(true);
         }
-        Alert.alert("Login Failed", data.error || "Please check your credentials and try again");
+        Alert.alert("Login Failed", response.data.error || "Please check your credentials and try again");
       }
     } catch (error) {
+      console.error("Login error:", error);
       Alert.alert("Connection Error", "Unable to connect to our servers. Please check your internet connection and try again.");
     } finally {
       setIsLoading(false);
@@ -205,7 +212,7 @@ export default function LoginScreen({ navigation }) {
                   style={styles.gradient}
                 >
                   {isLoading ? (
-                    <Text style={styles.loginButtonText}>Logging in...</Text>
+                    <ActivityIndicator size="small" color="#fff" />
                   ) : (
                     <Text style={styles.loginButtonText}>Sign In</Text>
                   )}

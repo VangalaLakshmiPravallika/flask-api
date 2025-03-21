@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { 
-  View, Text, TouchableOpacity, Alert, StyleSheet, ActivityIndicator, 
-  ScrollView, Dimensions, SafeAreaView, ImageBackground 
+import {
+  View, Text, TouchableOpacity, Alert, StyleSheet, ActivityIndicator,
+  ScrollView, Dimensions, SafeAreaView, ImageBackground, AppState
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
@@ -29,12 +29,41 @@ const SleepTracker = () => {
     checkSleep();
     fetchSleepHistory();
     calculateSleepStreak();
-    
-    if (animation.current) {
-      animation.current.play();
-    }
+
+    // Add AppState listener to detect when the app goes into the background
+    const handleAppStateChange = (nextAppState) => {
+      if (nextAppState === "background" || nextAppState === "inactive") {
+        resetSleepValue();
+      }
+    };
+
+    AppState.addEventListener("change", handleAppStateChange);
+
+    return () => {
+      AppState.removeEventListener("change", handleAppStateChange);
+    };
   }, []);
 
+  /** ✅ Reset Sleep Value */
+  const resetSleepValue = async () => {
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) return;
+
+      await axios.post(
+        "https://healthfitnessbackend.onrender.com/api/reset-sleep",
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setSleepHours(0);
+      setSleepDetected(false);
+    } catch (error) {
+      console.error("Error resetting sleep value:", error);
+    }
+  };
+
+  /** ✅ Fetch Sleep History */
   const fetchSleepHistory = async () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
@@ -47,9 +76,9 @@ const SleepTracker = () => {
 
       if (response.data && response.data.history) {
         setSleepHistory(response.data.history.slice(-7)); // Last 7 days
-        
+
         // Calculate sleep quality based on recent history
-        const avgSleep = response.data.history.slice(-3).reduce((sum, entry) => 
+        const avgSleep = response.data.history.slice(-3).reduce((sum, entry) =>
           sum + parseFloat(entry.sleep_hours), 0) / 3;
         setSleepQuality(avgSleep >= 7 ? 85 : avgSleep >= 6 ? 70 : 55);
       }
@@ -58,6 +87,7 @@ const SleepTracker = () => {
     }
   };
 
+  /** ✅ Calculate Sleep Streak */
   const calculateSleepStreak = async () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
@@ -76,6 +106,7 @@ const SleepTracker = () => {
     }
   };
 
+  /** ✅ Check Sleep */
   const checkSleep = async () => {
     try {
       const lastActive = await AsyncStorage.getItem("lastActiveTime");
@@ -99,6 +130,7 @@ const SleepTracker = () => {
     }
   };
 
+  /** ✅ Log Sleep to Backend */
   const logSleepToBackend = async () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
@@ -119,6 +151,7 @@ const SleepTracker = () => {
     }
   };
 
+  /** ✅ Submit Sleep Data */
   const submitSleepData = async () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
@@ -135,11 +168,11 @@ const SleepTracker = () => {
       );
 
       setShowRatingModal(false);
-      
+
       // Update local data
       fetchSleepHistory();
       calculateSleepStreak();
-      
+
       Alert.alert("Success", response.data.message);
     } catch (error) {
       console.error("Error submitting sleep data:", error);
@@ -147,11 +180,12 @@ const SleepTracker = () => {
     }
   };
 
+  /** ✅ Render Sleep Quality Indicator */
   const renderSleepQualityIndicator = () => {
     let color = "#FF5722";
     let icon = "moon-waning-crescent";
     let text = "Poor";
-    
+
     if (sleepQuality >= 80) {
       color = "#4CAF50";
       icon = "moon";
@@ -161,7 +195,7 @@ const SleepTracker = () => {
       icon = "moon-waxing-crescent";
       text = "Good";
     }
-    
+
     return (
       <View style={styles.qualityCard}>
         <Text style={styles.qualityTitle}>Sleep Quality</Text>
@@ -176,39 +210,40 @@ const SleepTracker = () => {
     );
   };
 
+  /** ✅ Render Sleep Rating Modal */
   const renderSleepRatingModal = () => {
     if (!showRatingModal) return null;
-    
+
     return (
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>How did you sleep?</Text>
-          
+
           <View style={styles.ratingContainer}>
             {[1, 2, 3, 4, 5].map((rating) => (
-              <TouchableOpacity 
+              <TouchableOpacity
                 key={rating}
                 onPress={() => setSleepRating(rating)}
                 style={styles.ratingButton}
               >
-                <Ionicons 
-                  name={rating <= sleepRating ? "star" : "star-outline"} 
-                  size={32} 
+                <Ionicons
+                  name={rating <= sleepRating ? "star" : "star-outline"}
+                  size={32}
                   color={rating <= sleepRating ? "#FFD700" : "#ccc"}
                 />
               </TouchableOpacity>
             ))}
           </View>
-          
+
           <View style={styles.modalButtons}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.modalButton, styles.cancelButton]}
               onPress={() => setShowRatingModal(false)}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={[styles.modalButton, styles.submitButton]}
               onPress={submitSleepData}
             >
@@ -220,6 +255,7 @@ const SleepTracker = () => {
     );
   };
 
+  /** ✅ Render Sleep Chart */
   const renderSleepChart = () => {
     if (sleepHistory.length === 0) {
       return (
@@ -274,9 +310,10 @@ const SleepTracker = () => {
     );
   };
 
+  /** ✅ Render Sleep Distribution Chart */
   const renderSleepDistributionChart = () => {
     if (sleepHistory.length === 0) return null;
-    
+
     // Generate distribution data
     const sleepCategories = [
       { label: "<6h", count: 0 },
@@ -284,7 +321,7 @@ const SleepTracker = () => {
       { label: "7-8h", count: 0 },
       { label: ">8h", count: 0 }
     ];
-    
+
     sleepHistory.forEach(entry => {
       const hours = parseFloat(entry.sleep_hours);
       if (hours < 6) sleepCategories[0].count++;
@@ -292,7 +329,7 @@ const SleepTracker = () => {
       else if (hours < 8) sleepCategories[2].count++;
       else sleepCategories[3].count++;
     });
-    
+
     const chartData = {
       labels: sleepCategories.map(cat => cat.label),
       datasets: [
@@ -307,7 +344,7 @@ const SleepTracker = () => {
         }
       ]
     };
-    
+
     return (
       <View style={styles.chartContainer}>
         <Text style={styles.chartTitle}>Sleep Distribution</Text>
@@ -374,8 +411,8 @@ const SleepTracker = () => {
                       </View>
                       <Text style={styles.sleepHoursText}>{sleepHours}h</Text>
                       <Text style={styles.recommendationText}>
-                        {sleepHours < 7 
-                          ? "You should aim for 7-9 hours of sleep" 
+                        {sleepHours < 7
+                          ? "You should aim for 7-9 hours of sleep"
                           : "Great job! You're in the optimal range"}
                       </Text>
                     </>
@@ -427,8 +464,8 @@ const SleepTracker = () => {
                   </LinearGradient>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
-                  style={styles.yogaButton} 
+                <TouchableOpacity
+                  style={styles.yogaButton}
                   onPress={() => navigation.navigate("SoothingMusic")}
                 >
                   <LinearGradient

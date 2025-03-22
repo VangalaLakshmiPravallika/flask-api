@@ -7,7 +7,6 @@ import bcrypt
 from pymongo import MongoClient
 from dotenv import load_dotenv
 from datetime import datetime
-import traceback
 import logging
 from datetime import datetime
 from datetime import datetime, timedelta
@@ -117,8 +116,7 @@ def update_challenge_progress():
         return jsonify({"error": "You have not joined this challenge"}), 403
 
     new_progress = user_progress["progress"] + progress
-    is_completed = new_progress >= challenge["target"]  # Use "target" instead of "duration_days"
-
+    is_completed = new_progress >= challenge["target"]  
     user_challenges_collection.update_one(
         {"email": user_email, "challenge_name": challenge_name},
         {"$set": {"progress": new_progress, "completed": is_completed}}
@@ -321,26 +319,41 @@ def register():
     
     return jsonify({"message":"User registered successfully!"}),201
 
-@app.route("/api/login",methods=["POST"])
+@app.route("/api/login", methods=["POST"])
 def login():
-    data=request.json
-    email=data.get("email")
-    password=data.get("password")
+    data = request.json
+    email = data.get("email")
+    password = data.get("password")
 
-    user=users_collection.find_one({"email":email})
+    user = users_collection.find_one({"email": email})
 
     if not user:
-        return jsonify({"error":"Invalid email or password"}),401
+        return jsonify({"error": "Invalid email or password"}), 401
 
-    stored_password=user["password"]
-    if isinstance(stored_password,str):
-        stored_password=stored_password.encode('utf-8')
+    stored_password = user["password"]
+    if isinstance(stored_password, str):
+        stored_password = stored_password.encode('utf-8')
 
-    if bcrypt.checkpw(password.encode('utf-8'),stored_password):
-        token = create_access_token(identity=email)
-        return jsonify({"message":"Login successful","token":token}),200
+    if not bcrypt.checkpw(password.encode('utf-8'), stored_password):
+        return jsonify({"error": "Invalid email or password"}), 401
 
-    return jsonify({"error":"Invalid email or password"}),401
+    profile = profiles_collection.find_one({"email": email})
+    profile_complete = (
+        profile
+        and profile.get("name")
+        and profile.get("age")
+        and profile.get("gender")
+        and profile.get("height")
+        and profile.get("weight")
+    )
+
+    token = create_access_token(identity=email)
+
+    return jsonify({
+        "message": "Login successful",
+        "token": token,
+        "profileComplete": profile_complete
+    }), 200
 
 def get_current_date():
     return datetime.utcnow().strftime("%Y-%m-%d")
@@ -1211,6 +1224,6 @@ def test_read_excel():
         return jsonify({"status": "error", "message": str(e)})
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))  # Use Render's assigned port
+    port = int(os.environ.get("PORT", 10000)) 
     app.run(host="0.0.0.0", port=port, debug=True)
 

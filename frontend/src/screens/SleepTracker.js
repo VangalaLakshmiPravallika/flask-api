@@ -1,7 +1,15 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, TouchableOpacity, Alert, StyleSheet, ActivityIndicator,
-  ScrollView, Dimensions, SafeAreaView, ImageBackground, AppState
+  View,
+  Text,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+  ScrollView,
+  Dimensions,
+  SafeAreaView,
+  ImageBackground,
+  AppState,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
@@ -30,17 +38,33 @@ const SleepTracker = () => {
     fetchSleepHistory();
     calculateSleepStreak();
 
-    // Add AppState listener to detect when the app goes into the background
+    let backgroundTime = null; // Timestamp when app goes into the background
+
     const handleAppStateChange = (nextAppState) => {
-      if (nextAppState === "background" || nextAppState === "inactive") {
-        resetSleepValue();
+      if (nextAppState === "background") {
+        // App went into the background (user stopped interacting)
+        backgroundTime = new Date().getTime(); // Store the current timestamp
+      } else if (nextAppState === "active" && backgroundTime !== null) {
+        // App came back to the foreground (user resumed interacting)
+        const foregroundTime = new Date().getTime(); // Current timestamp
+        const inactiveDuration = (foregroundTime - backgroundTime) / 1000 / 60 / 60; // Duration in hours
+
+        if (inactiveDuration >= 5) {
+          // If inactive for 5+ hours, assume the user was sleeping
+          setSleepHours(inactiveDuration.toFixed(2));
+          setSleepDetected(true);
+        }
+
+        backgroundTime = null; // Reset the background timestamp
       }
     };
 
-    AppState.addEventListener("change", handleAppStateChange);
+    // Add AppState listener
+    const subscription = AppState.addEventListener("change", handleAppStateChange);
 
+    // Clean up the subscription
     return () => {
-      AppState.removeEventListener("change", handleAppStateChange);
+      subscription.remove();
     };
   }, []);
 
@@ -78,8 +102,8 @@ const SleepTracker = () => {
         setSleepHistory(response.data.history.slice(-7)); // Last 7 days
 
         // Calculate sleep quality based on recent history
-        const avgSleep = response.data.history.slice(-3).reduce((sum, entry) =>
-          sum + parseFloat(entry.sleep_hours), 0) / 3;
+        const avgSleep =
+          response.data.history.slice(-3).reduce((sum, entry) => sum + parseFloat(entry.sleep_hours), 0) / 3;
         setSleepQuality(avgSleep >= 7 ? 85 : avgSleep >= 6 ? 70 : 55);
       }
     } catch (error) {
@@ -103,30 +127,6 @@ const SleepTracker = () => {
       }
     } catch (error) {
       console.error("Error calculating sleep streak:", error);
-    }
-  };
-
-  /** ✅ Check Sleep */
-  const checkSleep = async () => {
-    try {
-      const lastActive = await AsyncStorage.getItem("lastActiveTime");
-      if (!lastActive) {
-        setLoading(false);
-        return;
-      }
-
-      const lastActiveTime = new Date(parseInt(lastActive));
-      const currentTime = new Date();
-      const inactiveDuration = (currentTime - lastActiveTime) / 1000 / 60 / 60;
-
-      if (inactiveDuration >= 5) {
-        setSleepHours(inactiveDuration.toFixed(2));
-        setSleepDetected(true);
-      }
-    } catch (error) {
-      console.error("Error detecting sleep:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -162,7 +162,7 @@ const SleepTracker = () => {
         {
           date: new Date().toISOString().split("T")[0],
           sleep_hours: sleepHours,
-          sleep_rating: sleepRating
+          sleep_rating: sleepRating,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -266,18 +266,18 @@ const SleepTracker = () => {
     }
 
     const chartData = {
-      labels: sleepHistory.map(entry => {
+      labels: sleepHistory.map((entry) => {
         const date = new Date(entry.date);
         return `${date.getDate()}/${date.getMonth() + 1}`;
       }),
       datasets: [
         {
-          data: sleepHistory.map(entry => parseFloat(entry.sleep_hours)),
+          data: sleepHistory.map((entry) => parseFloat(entry.sleep_hours)),
           color: (opacity = 1) => `rgba(65, 105, 225, ${opacity})`,
-          strokeWidth: 2
-        }
+          strokeWidth: 2,
+        },
       ],
-      legend: ["Sleep Hours"]
+      legend: ["Sleep Hours"],
     };
 
     return (
@@ -295,13 +295,13 @@ const SleepTracker = () => {
             color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
             labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
             style: {
-              borderRadius: 16
+              borderRadius: 16,
             },
             propsForDots: {
               r: "6",
               strokeWidth: "2",
-              stroke: "#ffa726"
-            }
+              stroke: "#ffa726",
+            },
           }}
           bezier
           style={styles.chart}
@@ -319,10 +319,10 @@ const SleepTracker = () => {
       { label: "<6h", count: 0 },
       { label: "6-7h", count: 0 },
       { label: "7-8h", count: 0 },
-      { label: ">8h", count: 0 }
+      { label: ">8h", count: 0 },
     ];
 
-    sleepHistory.forEach(entry => {
+    sleepHistory.forEach((entry) => {
       const hours = parseFloat(entry.sleep_hours);
       if (hours < 6) sleepCategories[0].count++;
       else if (hours < 7) sleepCategories[1].count++;
@@ -331,18 +331,18 @@ const SleepTracker = () => {
     });
 
     const chartData = {
-      labels: sleepCategories.map(cat => cat.label),
+      labels: sleepCategories.map((cat) => cat.label),
       datasets: [
         {
-          data: sleepCategories.map(cat => cat.count),
+          data: sleepCategories.map((cat) => cat.count),
           colors: [
             (opacity = 1) => `rgba(255, 99, 132, ${opacity})`,
             (opacity = 1) => `rgba(255, 159, 64, ${opacity})`,
             (opacity = 1) => `rgba(75, 192, 192, ${opacity})`,
-            (opacity = 1) => `rgba(54, 162, 235, ${opacity})`
-          ]
-        }
-      ]
+            (opacity = 1) => `rgba(54, 162, 235, ${opacity})`,
+          ],
+        },
+      ],
     };
 
     return (
@@ -362,9 +362,9 @@ const SleepTracker = () => {
             color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
             labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
             style: {
-              borderRadius: 16
+              borderRadius: 16,
             },
-            barPercentage: 0.7
+            barPercentage: 0.7,
           }}
           style={styles.chart}
           fromZero

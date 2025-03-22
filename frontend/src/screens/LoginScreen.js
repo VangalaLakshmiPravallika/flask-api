@@ -59,55 +59,52 @@ export default function LoginScreen({ navigation }) {
       Alert.alert("Missing Information", "Please enter both email and password");
       return;
     }
-
+  
     if (!validateEmail(email)) {
       Alert.alert("Invalid Format", "Please enter a valid email address");
       return;
     }
-
+  
     setIsLoading(true);
-
+  
     try {
-      const response = await axios.post("https://healthfitnessbackend.onrender.com/api/login", {
+      const loginResponse = await axios.post("https://healthfitnessbackend.onrender.com/api/login", {
         email,
         password,
       });
-
-      if (response.status === 200) {
-        const { token } = response.data;
+  
+      if (loginResponse.status === 200) {
+        const { token, profileComplete } = loginResponse.data;
         await AsyncStorage.setItem("authToken", token);
-
-        // Fetch user profile after successful login
-        const profileResponse = await axios.get("https://healthfitnessbackend.onrender.com/api/get-profile", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (profileResponse.status === 200) {
-          const profileData = profileResponse.data;
-
-          // Check if profile is complete
-          if (profileData.name && profileData.age && profileData.gender && profileData.height && profileData.weight) {
-            // Profile is complete, redirect to Home
-            navigation.replace("Home");
-          } else {
-            // Profile is incomplete, redirect to HealthDataForm
-            navigation.replace("HealthDataForm");
-          }
+  
+        if (profileComplete) {
+          navigation.replace("Home");
         } else {
-          throw new Error("Failed to fetch profile data");
+          navigation.replace("HealthDataForm");
         }
       } else {
         setFailedAttempts(failedAttempts + 1);
         if (failedAttempts >= 2) {
           setShowForgotPassword(true);
         }
-        Alert.alert("Login Failed", response.data.error || "Please check your credentials and try again");
+        Alert.alert("Login Failed", loginResponse.data.error || "Please check your credentials and try again");
       }
     } catch (error) {
       console.error("Login error:", error);
-      Alert.alert("Connection Error", "Unable to connect to our servers. Please check your internet connection and try again.");
+
+      if (error.response) {
+        if (error.response.status === 404) {
+          Alert.alert("Error", "The requested resource was not found. Please check the API endpoint.");
+        } else if (error.response.status === 401) {
+          Alert.alert("Error", "Invalid credentials. Please try again.");
+        } else {
+          Alert.alert("Error", `Server error: ${error.response.status}`);
+        }
+      } else if (error.request) {
+        Alert.alert("Error", "No response from the server. Please check your internet connection.");
+      } else {
+        Alert.alert("Error", "An unexpected error occurred. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }

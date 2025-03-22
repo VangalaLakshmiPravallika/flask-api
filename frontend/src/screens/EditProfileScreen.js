@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+} from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -34,7 +42,7 @@ const EditProfileScreen = () => {
   };
 
   const handleSave = async () => {
-    const token = await AsyncStorage.getItem("token");
+    const token = await AsyncStorage.getItem("authToken"); // Corrected key
     const profileData = {
       name,
       age,
@@ -44,19 +52,45 @@ const EditProfileScreen = () => {
     };
 
     try {
-      const response = await axios.put("http://your-backend-url/api/edit-profile", profileData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await axios.put(
+        "https://healthfitnessbackend.onrender.com/api/edit-profile",
+        profileData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (response.status === 200) {
-        await AsyncStorage.setItem("userProfile", JSON.stringify({ ...profileData, bmi: response.data.bmi }));
+        // Update local profile data
+        const updatedProfile = { ...profileData, bmi: calculateBMI(weight, height) };
+        await AsyncStorage.setItem("userProfile", JSON.stringify(updatedProfile));
+
+        Alert.alert("Success", "Profile updated successfully");
         navigation.goBack();
       }
     } catch (error) {
       console.error("Error updating profile:", error);
+
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        Alert.alert("Error", `Server error: ${error.response.status}`);
+      } else if (error.request) {
+        // The request was made but no response was received
+        Alert.alert("Error", "No response from the server. Please check your internet connection.");
+      } else {
+        // Something happened in setting up the request
+        Alert.alert("Error", "An unexpected error occurred. Please try again.");
+      }
     }
+  };
+
+  // Helper function to calculate BMI
+  const calculateBMI = (weight, height) => {
+    const heightInMeters = height / 100;
+    return (weight / (heightInMeters * heightInMeters)).toFixed(2);
   };
 
   return (
@@ -123,7 +157,7 @@ const EditProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E3F2FD", 
+    backgroundColor: "#E3F2FD",
     padding: 20,
   },
   scrollContainer: {
@@ -137,7 +171,7 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 5,
-    elevation: 5, 
+    elevation: 5,
     alignItems: "center",
   },
   heading: {
@@ -164,7 +198,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     marginTop: 20,
-    backgroundColor: "#4CAF50", 
+    backgroundColor: "#4CAF50",
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 25,

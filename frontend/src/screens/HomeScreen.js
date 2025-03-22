@@ -87,7 +87,7 @@ const HomeScreen = () => {
         {/* ✅ Scrollable Menu Items */}
         <ScrollView style={styles.menuScroll} showsVerticalScrollIndicator={false}>
           {[
-            "SleepTracker", "Achievements", "JoinGroup", "MealTracker", "FitnessAssessment", 
+            "SleepTracker", "Achievements", "JoinGroup", "MealTracker", 
             "WorkoutPlan", "ProgressTracker", "StepCounter", "StepHistory", 
             "ChatBot", "Challenges"
           ].map((screen, index) => (

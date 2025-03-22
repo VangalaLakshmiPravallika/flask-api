@@ -1,93 +1,147 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity, Linking, ActivityIndicator, Alert } from "react-native";
+import { StyleSheet, Text, View, FlatList, Image, TouchableOpacity, ActivityIndicator } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { WebView } from "react-native-webview";
 
-const NewsScreen = ({ route }) => {
-  const [articles, setArticles] = useState([]);
+const BASE_URL = "https://healthfitnessbackend.onrender.com/api/news"; // Replace with your backend URL
+
+export default function App() {
+  const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [selectedArticle, setSelectedArticle] = useState(null);
 
-  // Fetch news from the backend
   useEffect(() => {
-    const fetchNews = async () => {
-      try {
-        const response = await fetch("https://healthfitnessbackend.onrender.com/api/news");
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-
-        const newsData = await response.json();
-        setArticles(newsData);
-      } catch (error) {
-        console.error("Error fetching news:", error);
-        setError(error.message);
-        Alert.alert("Error", "Failed to fetch news. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchNews();
   }, []);
 
-  // Render each news article
+  const fetchNews = async () => {
+    try {
+      const response = await fetch(BASE_URL);
+      const data = await response.json();
+      setNews(data);
+    } catch (error) {
+      console.error("Error fetching news:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const renderItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.article}
-      onPress={() => Linking.openURL(item.url)}
-    >
-      {item.urlToImage && (
-        <Image source={{ uri: item.urlToImage }} style={styles.image} />
-      )}
-      <Text style={styles.title}>{item.title}</Text>
-      <Text style={styles.description}>{item.description}</Text>
-      <Text style={styles.source}>{item.source.name}</Text>
+    <TouchableOpacity style={styles.articleContainer} onPress={() => setSelectedArticle(item)}>
+      <Image source={{ uri: item.urlToImage }} style={styles.articleImage} />
+      <View style={styles.articleContent}>
+        <Text style={styles.articleTitle}>{item.title}</Text>
+        <Text style={styles.articleDescription} numberOfLines={2}>
+          {item.description}
+        </Text>
+        <Text style={styles.articlePublishedAt}>{new Date(item.publishedAt).toDateString()}</Text>
+      </View>
     </TouchableOpacity>
   );
 
-  // Show loading indicator while fetching data
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007bff" />
-        <Text style={styles.loadingText}>Loading news...</Text>
+        <ActivityIndicator size="large" color="#0000ff" />
       </View>
     );
   }
 
-  // Show error message if fetching fails
-  if (error) {
+  if (selectedArticle) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Error: {error}</Text>
+      <View style={styles.webViewContainer}>
+        <WebView source={{ uri: selectedArticle.url }} />
+        <TouchableOpacity style={styles.backButton} onPress={() => setSelectedArticle(null)}>
+          <Text style={styles.backButtonText}>Back to News</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
-  // Render the list of news articles
   return (
-    <View style={styles.container}>
+    <LinearGradient colors={["#f7f7f7", "#e0e0e0"]} style={styles.container}>
+      <Text style={styles.header}>Health, Fitness & Diet News</Text>
       <FlatList
-        data={articles}
+        data={news}
         renderItem={renderItem}
         keyExtractor={(item) => item.url}
+        contentContainerStyle={styles.listContainer}
       />
-    </View>
+    </LinearGradient>
   );
-};
+}
 
-// Styles
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 10 },
-  article: { marginBottom: 20, padding: 10, backgroundColor: "#f9f9f9", borderRadius: 8 },
-  image: { width: "100%", height: 200, borderRadius: 8, marginBottom: 10 },
-  title: { fontSize: 18, fontWeight: "bold", marginBottom: 5 },
-  description: { fontSize: 14, color: "#555", marginBottom: 5 },
-  source: { fontSize: 12, color: "#888" },
-  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  loadingText: { marginTop: 10, fontSize: 16, color: "#007bff" },
-  errorContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  errorText: { fontSize: 16, color: "red" },
+  container: {
+    flex: 1,
+    paddingTop: 50,
+    paddingHorizontal: 16,
+  },
+  header: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  listContainer: {
+    paddingBottom: 20,
+  },
+  articleContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    marginBottom: 16,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  articleImage: {
+    width: "100%",
+    height: 150,
+    resizeMode: "cover",
+  },
+  articleContent: {
+    padding: 16,
+  },
+  articleTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  articleDescription: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 8,
+  },
+  articlePublishedAt: {
+    fontSize: 12,
+    color: "#999",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  webViewContainer: {
+    flex: 1,
+  },
+  backButton: {
+    position: "absolute",
+    top: 40,
+    left: 16,
+    backgroundColor: "#fff",
+    padding: 10,
+    borderRadius: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
 });
-
-export default NewsScreen;

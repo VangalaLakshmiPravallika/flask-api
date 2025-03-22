@@ -15,7 +15,6 @@ import PostAchievement from "./src/screens/PostAchievement";
 import GroupPosts from "./src/screens/GroupPosts";
 import MealTracker from "./src/screens/MealTracker";
 import MealSummary from "./src/screens/MealSummary";
-import FitnessAssessment from "./src/screens/FitnessAssessment";
 import WorkoutPlan from "./src/screens/WorkoutPlan";
 import ProgressTracker from "./src/screens/ProgressTracker";
 import SoothingMusic from "./src/screens/SoothingMusic";
@@ -113,11 +112,6 @@ export default function AppNavigator() {
           name="MealSummary"
           component={MealSummary}
           options={{ title: "Meal Summary" }}
-        />
-        <Stack.Screen
-          name="FitnessAssessment"
-          component={FitnessAssessment}
-          options={{ title: "Fitness Assessment" }}
         />
         <Stack.Screen
           name="WorkoutPlan"

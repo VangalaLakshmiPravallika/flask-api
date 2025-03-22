@@ -26,6 +26,7 @@ import NotificationsScreen from "./src/screens/NotificationsScreen";
 import ChallengesScreen from "./src/screens/ChallengesScreen";
 import ChallengeDetailsScreen from "./src/screens/ChallengeDetailsScreen";
 import LeaderboardScreen from "./src/screens/LeaderboardScreen";
+import NewsScreen from "./src/screens/NewsScreen";
 
 const Stack = createStackNavigator();
 
@@ -162,6 +163,11 @@ export default function AppNavigator() {
           name="Leaderboard"
           component={LeaderboardScreen}
           options={{ title: "Leaderboard" }}
+        />
+        <Stack.Screen
+          name="News"
+          component={NewsScreen}
+          options={{ title: "Health & Fitness News" }}
         />
       </Stack.Navigator>
     </NavigationContainer>

@@ -47,11 +47,21 @@ const HomeScreen = () => {
   const handleNewsPress = async () => {
     try {
       const response = await fetch("https://healthfitnessbackend.onrender.com/api/news");
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+  
       const newsData = await response.json();
+  
+      // Navigate to the NewsScreen with the fetched news data
       navigation.navigate("News", { news: newsData });
     } catch (error) {
       console.error("Error fetching news:", error);
-      Alert.alert("Error", "Failed to fetch news. Please try again later.");
+      Alert.alert(
+        "Error",
+        `Failed to fetch news. Please try again later.\n\nDetails: ${error.message}`
+      );
     }
   };
 

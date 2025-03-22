@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -16,14 +24,14 @@ const ProfileScreen = () => {
 
   const loadUserData = async () => {
     try {
-      const token = await AsyncStorage.getItem("token");
-      const userEmail = await AsyncStorage.getItem("userEmail");
-
-      if (!token || !userEmail) {
+      // Retrieve the token from AsyncStorage
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
         throw new Error("User not authenticated");
       }
 
-      const response = await axios.get("http://your-backend-url/api/get-profile", {
+      // Fetch profile data from the backend
+      const response = await axios.get("https://healthfitnessbackend.onrender.com/api/get-profile", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -31,12 +39,13 @@ const ProfileScreen = () => {
 
       if (response.status === 200) {
         setUserData(response.data);
-        await AsyncStorage.setItem("userProfile", JSON.stringify(response.data));
       } else {
         throw new Error("Failed to fetch profile data");
       }
     } catch (error) {
       console.error("Error loading user data:", error);
+      Alert.alert("Error", "Unable to load profile data. Please log in again.");
+      navigation.navigate("Login");
     } finally {
       setLoading(false);
     }
@@ -99,7 +108,7 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E3F2FD", 
+    backgroundColor: "#E3F2FD",
     padding: 20,
   },
   loadingContainer: {
@@ -119,7 +128,7 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 5,
-    elevation: 5, 
+    elevation: 5,
     alignItems: "center",
   },
   heading: {
@@ -146,7 +155,7 @@ const styles = StyleSheet.create({
   },
   editButton: {
     marginTop: 20,
-    backgroundColor: "#4CAF50", 
+    backgroundColor: "#4CAF50",
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 25,

@@ -531,6 +531,9 @@ const MealSummary = () => {
           </View>
         </>
       )}
+      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("DietRecommendation")}>
+        <Text style={styles.buttonText}>📊 View Diet Recommendation</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };

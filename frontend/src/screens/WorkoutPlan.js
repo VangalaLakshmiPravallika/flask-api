@@ -9,39 +9,31 @@ const WorkoutPlan = () => {
   const [loading, setLoading] = useState(true);
   const [completedDays, setCompletedDays] = useState(0);
   const [badge, setBadge] = useState(null);
-  const [fitnessLevel, setFitnessLevel] = useState("");
+  const [bmi, setBmi] = useState(null);
+  const [bmiCategory, setBmiCategory] = useState("");
   const navigation = useNavigation();
 
   useEffect(() => {
-    fetchUserFitnessLevel();
+    fetchWorkoutPlan();
     fetchProgress();
   }, []);
 
-  const fetchUserFitnessLevel = async () => {
+  const fetchWorkoutPlan = async () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
         Alert.alert("Login Required", "Please log in.");
         return;
       }
-      const response = await axios.get("https://healthfitnessbackend.onrender.com/api/get-fitness-level", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setFitnessLevel(response.data.fitness_level);
-      fetchWorkoutPlan(response.data.fitness_level);
-    } catch (error) {
-      Alert.alert("Error", "Failed to fetch fitness level.");
-      setLoading(false);
-    }
-  };
 
-  const fetchWorkoutPlan = async (level) => {
-    try {
-      const token = await AsyncStorage.getItem("authToken");
+      // Fetch workout plan based on BMI
       const response = await axios.get("https://healthfitnessbackend.onrender.com/api/workout-plan", {
         headers: { Authorization: `Bearer ${token}` },
-        params: { level },
       });
+
+      // Set BMI and workout plan
+      setBmi(response.data.bmi);
+      setBmiCategory(response.data.bmi_category);
       setWorkoutPlan(response.data.workout_plan);
     } catch (error) {
       Alert.alert("Error", "Failed to fetch workout plan.");
@@ -78,9 +70,6 @@ const WorkoutPlan = () => {
         alertMessage += `\n🎉 New Badge Earned: ${response.data.badge}`;
       }
       Alert.alert("Workout Completed!", alertMessage);
-      if (response.data.redirect) {
-        navigation.navigate("FitnessAssessment");
-      }
     } catch (error) {
       Alert.alert("Error", "Failed to update workout progress.");
     }
@@ -89,8 +78,8 @@ const WorkoutPlan = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Your Workout Plan</Text>
-      {fitnessLevel ? (
-        <Text style={styles.level}>🚀 Fitness Level: {fitnessLevel}</Text>
+      {bmi ? (
+        <Text style={styles.bmiText}>📊 BMI: {bmi} ({bmiCategory})</Text>
       ) : (
         <ActivityIndicator size="small" color="blue" />
       )}
@@ -131,7 +120,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     textAlign: "center",
   },
-  level: {
+  bmiText: {
     fontSize: 18,
     fontWeight: "bold",
     marginVertical: 10,

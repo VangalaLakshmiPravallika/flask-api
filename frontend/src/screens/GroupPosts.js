@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { 
-  View, Text, FlatList, Alert, TouchableOpacity, ActivityIndicator, 
-  TextInput, StyleSheet, SafeAreaView, Image, StatusBar
+import {
+  View, Text, FlatList, Alert, TouchableOpacity, ActivityIndicator,
+  TextInput, StyleSheet, SafeAreaView, StatusBar, Modal
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
@@ -18,6 +18,8 @@ const GroupPosts = () => {
   const [loading, setLoading] = useState(true);
   const [commentTexts, setCommentTexts] = useState({});
   const [refreshing, setRefreshing] = useState(false);
+  const [notifications, setNotifications] = useState([]); 
+  const [isNotificationsVisible, setIsNotificationsVisible] = useState(false); 
 
   useEffect(() => {
     const loadTokenAndFetchPosts = async () => {
@@ -53,9 +55,25 @@ const GroupPosts = () => {
     }
   };
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchGroupPosts(token);
+  const fetchNotifications = async () => {
+    try {
+      const response = await axios.get(
+        "https://healthfitnessbackend.onrender.com/api/notifications",
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setNotifications(response.data);
+    } catch (error) {
+      Alert.alert("⚠️ Error", "Failed to fetch notifications.");
+    }
+  };
+
+  const handleNotificationIconPress = async () => {
+    await fetchNotifications(); 
+    setIsNotificationsVisible(true); 
+  };
+
+  const handleJoinGroupPress = () => {
+    navigation.navigate("JoinGroupScreen"); 
   };
 
   const likePost = async (postContent) => {
@@ -152,9 +170,9 @@ const GroupPosts = () => {
           <Ionicons name="ellipsis-vertical" size={22} color="#555" />
         </TouchableOpacity>
       </View>
-      
+
       <Text style={styles.content}>{item.content}</Text>
-      
+
       <View style={styles.engagementStats}>
         <Text style={styles.likes}>
           <Ionicons name="heart" size={16} color="#ff3b5c" /> {item.likes}
@@ -163,9 +181,9 @@ const GroupPosts = () => {
           <Ionicons name="chatbubble-outline" size={16} color="#555" /> {item.comments.length}
         </Text>
       </View>
-      
+
       <View style={styles.divider} />
-      
+
       <View style={styles.actionButtons}>
         <TouchableOpacity style={styles.actionButton} onPress={() => likePost(item.content)}>
           <Ionicons name="heart-outline" size={22} color="#555" />
@@ -180,7 +198,7 @@ const GroupPosts = () => {
           <Text style={styles.actionText}>Share</Text>
         </TouchableOpacity>
       </View>
-      
+
       {item.comments.length > 0 && (
         <View style={styles.commentsSection}>
           <Text style={styles.commentsSectionTitle}>Comments</Text>
@@ -196,7 +214,7 @@ const GroupPosts = () => {
                   <Text style={styles.commentUser}>{comment.user}</Text>
                   <Text style={styles.commentText}>{comment.text}</Text>
                 </View>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.removeCommentBtn}
                   onPress={() => removeComment(item.content, comment.text)}
                 >
@@ -207,7 +225,7 @@ const GroupPosts = () => {
           />
         </View>
       )}
-      
+
       <View style={styles.addCommentSection}>
         <View style={styles.commentInputContainer}>
           <TextInput
@@ -217,8 +235,8 @@ const GroupPosts = () => {
             style={styles.commentInput}
             placeholderTextColor="#999"
           />
-          <TouchableOpacity 
-            style={styles.sendCommentButton} 
+          <TouchableOpacity
+            style={styles.sendCommentButton}
             onPress={() => addComment(item.content)}
           >
             <Ionicons name="send" size={22} color="#007bff" />
@@ -231,17 +249,17 @@ const GroupPosts = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar backgroundColor="#fff" barStyle="dark-content" />
-      
+
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#007bff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{group}</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={handleNotificationIconPress}>
           <Ionicons name="notifications-outline" size={24} color="#007bff" />
         </TouchableOpacity>
       </View>
-      
+
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007bff" />
@@ -265,10 +283,42 @@ const GroupPosts = () => {
           }
         />
       )}
-      
-      <TouchableOpacity style={styles.newPostButton}>
+
+      <TouchableOpacity style={styles.newPostButton} onPress={handleJoinGroupPress}>
         <Ionicons name="add" size={30} color="#fff" />
       </TouchableOpacity>
+
+      {/* Notifications Modal */}
+      <Modal
+        visible={isNotificationsVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsNotificationsVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Notifications</Text>
+              <TouchableOpacity onPress={() => setIsNotificationsVisible(false)}>
+                <Ionicons name="close" size={24} color="#007bff" />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={notifications}
+              keyExtractor={(item, index) => `notification-${index}`}
+              renderItem={({ item }) => (
+                <View style={styles.notificationItem}>
+                  <Text style={styles.notificationText}>{item.message}</Text>
+                  <Text style={styles.notificationTimestamp}>{item.timestamp}</Text>
+                </View>
+              )}
+              ListEmptyComponent={
+                <Text style={styles.emptyNotificationsText}>No new notifications.</Text>
+              }
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -288,6 +338,48 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
     elevation: 2
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)"
+  },
+  modalContent: {
+    width: "90%",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#333"
+  },
+  notificationItem: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0"
+  },
+  notificationText: {
+    fontSize: 14,
+    color: "#333"
+  },
+  notificationTimestamp: {
+    fontSize: 12,
+    color: "#888",
+    marginTop: 4
+  },
+  emptyNotificationsText: {
+    textAlign: "center",
+    color: "#888",
+    fontSize: 14
   },
   headerTitle: {
     fontSize: 18,

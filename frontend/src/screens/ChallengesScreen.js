@@ -108,7 +108,12 @@ const ChallengesScreen = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      Alert.alert("✅ Progress Updated", response.data.message);
+      if (response.data.badge) {
+        Alert.alert("🎉 Challenge Completed!", `Congratulations! You completed the challenge and earned the badge: ${response.data.badge}`);
+      } else {
+        Alert.alert("✅ Progress Updated", response.data.message);
+      }
+
       fetchJoinedChallenges();
     } catch (error) {
       Alert.alert("⚠️ Error", "Failed to update progress.");

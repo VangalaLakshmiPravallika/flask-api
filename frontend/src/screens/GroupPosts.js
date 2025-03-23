@@ -55,6 +55,17 @@ const GroupPosts = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchGroupPosts(token);
+    } catch (error) {
+      Alert.alert("⚠️ Error", "Failed to refresh posts.");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+  
   const fetchNotifications = async () => {
     try {
       const response = await axios.get(

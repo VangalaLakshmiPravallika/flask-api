@@ -3,20 +3,23 @@ import { View, Text, Button, Alert, ActivityIndicator, StyleSheet } from "react-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation } from "@react-navigation/native"; // ✅ Import useNavigation
 
-const DietRecommendation = () => {
-  const navigation = useNavigation(); // ✅ Fix: Use navigation hook
+const DietRecommendation = ({ navigation }) => {  // ✅ Accept navigation as a prop
   const [bmi, setBmi] = useState(null);
   const [dietPlan, setDietPlan] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Function to fetch BMI
+  useEffect(() => {
+    fetchBmi();
+    fetchDietPlan();
+  }, []);
+
   const fetchBmi = async () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
         Alert.alert("Login Required", "Please log in first.");
+        navigation.navigate("Home");  // ✅ Redirect to Home if not logged in
         return;
       }
 
@@ -27,16 +30,14 @@ const DietRecommendation = () => {
 
       setBmi(response.data.bmi);
     } catch (error) {
-      Alert.alert("Error", error.response?.data?.error || "Failed to fetch BMI");
+      Alert.alert("Error", "Failed to fetch BMI");
     }
   };
 
-  // Function to fetch diet plan
   const fetchDietPlan = async () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
-        Alert.alert("Login Required", "Please log in first.");
         return;
       }
 
@@ -47,17 +48,11 @@ const DietRecommendation = () => {
 
       setDietPlan(response.data.recommended_diet);
     } catch (error) {
-      Alert.alert("Error", error.response?.data?.error || "Failed to fetch diet plan");
+      Alert.alert("Error", "Failed to fetch diet plan");
     } finally {
       setLoading(false);
     }
   };
-
-  // Fetch BMI and Diet Plan when the component loads
-  useEffect(() => {
-    fetchBmi();
-    fetchDietPlan();
-  }, []);
 
   return (
     <LinearGradient colors={["#4c669f", "#3b5998", "#192f6a"]} style={styles.container}>
@@ -84,7 +79,7 @@ const DietRecommendation = () => {
           </>
         )}
 
-        {/* ✅ Fix: Navigation Back Button */}
+        {/* ✅ Working Go Back Button */}
         <Button title="🔙 Back to Meal Summary" onPress={() => navigation.goBack()} />
       </View>
     </LinearGradient>

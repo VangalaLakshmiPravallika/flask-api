@@ -65,7 +65,7 @@ const GroupPosts = () => {
       setRefreshing(false);
     }
   };
-  
+
   const fetchNotifications = async () => {
     try {
       const response = await axios.get(
@@ -84,7 +84,7 @@ const GroupPosts = () => {
   };
 
   const handleJoinGroupPress = () => {
-    navigation.navigate("JoinGroupScreen"); 
+    navigation.navigate("JoinGroup"); 
   };
 
   const likePost = async (postContent) => {

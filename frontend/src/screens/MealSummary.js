@@ -19,7 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 const screenWidth = Dimensions.get("window").width;
 
-const MealSummary = () => {
+const MealSummary = ({ navigation }) => {
   const [meals, setMeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("list"); 
@@ -531,9 +531,13 @@ const MealSummary = () => {
           </View>
         </>
       )}
-      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("DietRecommendation")}>
-        <Text style={styles.buttonText}>📊 View Diet Recommendation</Text>
-      </TouchableOpacity>
+      <TouchableOpacity 
+  style={styles.button} 
+  onPress={() => navigation.navigate("DietRecommendation")}
+>
+  <Text style={styles.buttonText}>📊 View Diet Recommendation</Text>
+</TouchableOpacity>
+
     </SafeAreaView>
   );
 };

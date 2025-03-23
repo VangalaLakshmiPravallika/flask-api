@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { 
-  View, Text, Button, Alert, ActivityIndicator, StyleSheet 
-} from "react-native";
+import { View, Text, Button, Alert, ActivityIndicator, StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation } from "@react-navigation/native"; // ✅ Import useNavigation
 
 const DietRecommendation = () => {
+  const navigation = useNavigation(); // ✅ Fix: Use navigation hook
   const [bmi, setBmi] = useState(null);
   const [dietPlan, setDietPlan] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Function to get authToken and fetch BMI
+  // Function to fetch BMI
   const fetchBmi = async () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
@@ -31,7 +31,7 @@ const DietRecommendation = () => {
     }
   };
 
-  // Function to get authToken and fetch diet plan
+  // Function to fetch diet plan
   const fetchDietPlan = async () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
@@ -84,7 +84,8 @@ const DietRecommendation = () => {
           </>
         )}
 
-        <Button title="🔄 Refresh Diet Plan" onPress={fetchDietPlan} />
+        {/* ✅ Fix: Navigation Back Button */}
+        <Button title="🔙 Back to Meal Summary" onPress={() => navigation.goBack()} />
       </View>
     </LinearGradient>
   );
@@ -92,48 +93,13 @@ const DietRecommendation = () => {
 
 // Styling for the component
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  innerContainer: {
-    width: "90%",
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    borderRadius: 20,
-    padding: 20,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-  },
-  heading: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 15,
-    textAlign: "center",
-  },
-  bmiText: {
-    fontSize: 20,
-    color: "#fff",
-    marginBottom: 10,
-  },
-  dietContainer: {
-    marginTop: 10,
-    alignItems: "center",
-  },
-  dietText: {
-    fontSize: 16,
-    color: "#fff",
-    marginBottom: 5,
-  },
-  errorText: {
-    fontSize: 16,
-    color: "#ffcc00",
-    marginTop: 10,
-  },
+  container: { flex: 1, justifyContent: "center", alignItems: "center" },
+  innerContainer: { width: "90%", backgroundColor: "rgba(255, 255, 255, 0.2)", borderRadius: 20, padding: 20, alignItems: "center" },
+  heading: { fontSize: 24, fontWeight: "bold", color: "#fff", marginBottom: 15, textAlign: "center" },
+  bmiText: { fontSize: 20, color: "#fff", marginBottom: 10 },
+  dietContainer: { marginTop: 10, alignItems: "center" },
+  dietText: { fontSize: 16, color: "#fff", marginBottom: 5 },
+  errorText: { fontSize: 16, color: "#ffcc00", marginTop: 10 },
 });
 
 export default DietRecommendation;

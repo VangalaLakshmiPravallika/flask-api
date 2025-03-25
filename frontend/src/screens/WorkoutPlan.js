@@ -1,107 +1,138 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, Button, ActivityIndicator, Alert, StyleSheet } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
-import { useNavigation } from "@react-navigation/native";
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, Image, TouchableOpacity } from 'react-native';
+import { useAuth } from '../context/AuthContext';
 
-const WorkoutPlan = () => {
-  const [workoutPlan, setWorkoutPlan] = useState([]);
+const FitnessDashboard = () => {
+  const [workouts, setWorkouts] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [completedDays, setCompletedDays] = useState(0);
-  const [badge, setBadge] = useState(null);
-  const [bmi, setBmi] = useState(null);
-  const [bmiCategory, setBmiCategory] = useState("");
-  const navigation = useNavigation();
+  const [error, setError] = useState(null);
+  const { authToken } = useAuth();
+  const [activeTab, setActiveTab] = useState('recommendations');
 
   useEffect(() => {
-    fetchWorkoutPlan();
-    fetchProgress();
-  }, []);
-
-  const fetchWorkoutPlan = async () => {
-    try {
-      const token = await AsyncStorage.getItem("authToken");
-      if (!token) {
-        Alert.alert("Login Required", "Please log in.");
-        return;
+    const fetchData = async () => {
+      try {
+        const response = await fetch('https://healthfitnessbackend.onrender.com/api/get-personalized-workouts', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch data');
+        }
+        
+        setWorkouts(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
+    };
+    
+    fetchData();
+  }, [authToken]);
 
-      // Fetch workout plan based on BMI
-      const response = await axios.get("https://healthfitnessbackend.onrender.com/api/workout-plan", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+  const renderWorkout = ({ item }) => (
+    <TouchableOpacity style={styles.workoutCard}>
+      <Image 
+        source={{ uri: item.gifUrl || 'https://via.placeholder.com/150' }} 
+        style={styles.exerciseImage}
+        resizeMode="cover"
+      />
+      <View style={styles.workoutInfo}>
+        <Text style={styles.workoutName}>{item.name}</Text>
+        <View style={styles.workoutMeta}>
+          <Text style={styles.metaText}>{item.bodyPart}</Text>
+          <Text style={styles.metaText}>•</Text>
+          <Text style={styles.metaText}>{item.equipment}</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 
-      // Set BMI and workout plan
-      setBmi(response.data.bmi);
-      setBmiCategory(response.data.bmi_category);
-      setWorkoutPlan(response.data.workout_plan);
-    } catch (error) {
-      Alert.alert("Error", "Failed to fetch workout plan.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#3E82FC" />
+      </View>
+    );
+  }
 
-  const fetchProgress = async () => {
-    try {
-      const token = await AsyncStorage.getItem("authToken");
-      const response = await axios.get("https://healthfitnessbackend.onrender.com/api/get-progress", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setCompletedDays(response.data.completed_days);
-      setBadge(response.data.badge);
-    } catch (error) {
-      Alert.alert("Error", "Failed to fetch progress.");
-    }
-  };
-
-  const markWorkoutCompleted = async () => {
-    try {
-      const token = await AsyncStorage.getItem("authToken");
-      const response = await axios.post(
-        "https://healthfitnessbackend.onrender.com/api/track-progress",
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setCompletedDays(response.data.completed_days);
-      setBadge(response.data.badge);
-      let alertMessage = "You Have Done it, See You Tomorrow!";
-      if (response.data.badge) {
-        alertMessage += `\n🎉 New Badge Earned: ${response.data.badge}`;
-      }
-      Alert.alert("Workout Completed!", alertMessage);
-    } catch (error) {
-      Alert.alert("Error", "Failed to update workout progress.");
-    }
-  };
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>{error}</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Your Workout Plan</Text>
-      {bmi ? (
-        <Text style={styles.bmiText}>📊 BMI: {bmi} ({bmiCategory})</Text>
-      ) : (
-        <ActivityIndicator size="small" color="blue" />
+      {/* Header with BMI Display */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Fitness Dashboard</Text>
+        {workouts && (
+          <View style={styles.bmiContainer}>
+            <Text style={styles.bmiLabel}>Your BMI</Text>
+            <Text style={styles.bmiValue}>{workouts.bmi.toFixed(1)}</Text>
+            <Text style={styles.bmiCategory}>({workouts.intensity_level})</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Navigation Tabs */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'recommendations' && styles.activeTab]}
+          onPress={() => setActiveTab('recommendations')}
+        >
+          <Text style={[styles.tabText, activeTab === 'recommendations' && styles.activeTabText]}>Recommendations</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'myPlan' && styles.activeTab]}
+          onPress={() => setActiveTab('myPlan')}
+        >
+          <Text style={[styles.tabText, activeTab === 'myPlan' && styles.activeTabText]}>My Plan</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'progress' && styles.activeTab]}
+          onPress={() => setActiveTab('progress')}
+        >
+          <Text style={[styles.tabText, activeTab === 'progress' && styles.activeTabText]}>Progress</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Content Area */}
+      {activeTab === 'recommendations' && workouts && (
+        <View style={styles.content}>
+          <Text style={styles.sectionTitle}>Recommended For You</Text>
+          <FlatList
+            data={workouts.recommended_workouts}
+            renderItem={renderWorkout}
+            keyExtractor={(item) => item.id.toString()}
+            numColumns={2}
+            columnWrapperStyle={styles.workoutGrid}
+            showsVerticalScrollIndicator={false}
+          />
+        </View>
       )}
-      {loading ? (
-        <ActivityIndicator size="large" color="blue" style={styles.loader} />
-      ) : (
-        <FlatList
-          data={workoutPlan}
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.workoutItem}>
-              <Text style={styles.workoutDay}>{item.day}</Text>
-              <Text style={styles.workoutDesc}>{item.workout}</Text>
-            </View>
-          )}
-        />
+
+      {activeTab === 'myPlan' && (
+        <View style={styles.content}>
+          <Text style={styles.sectionTitle}>Your Workout Plan</Text>
+          <Text style={styles.emptyText}>Your personalized plan will appear here</Text>
+        </View>
       )}
-      <Button title="Mark Workout as Completed" onPress={markWorkoutCompleted} color="#28a745" />
-      {completedDays > 0 && (
-        <View style={styles.progressContainer}>
-          <Text style={styles.progressText}>✅ Workouts Completed: {completedDays}</Text>
-          {badge && <Text style={styles.badgeText}>🏆 Earned Badge: {badge}</Text>}
+
+      {activeTab === 'progress' && (
+        <View style={styles.content}>
+          <Text style={styles.sectionTitle}>Your Progress</Text>
+          <Text style={styles.emptyText}>Track your fitness journey here</Text>
         </View>
       )}
     </View>
@@ -111,60 +142,119 @@ const WorkoutPlan = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F8F9FA',
+  },
+  header: {
     padding: 20,
-    backgroundColor: "#f4f4f4",
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EAECEF',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  title: {
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+  },
+  bmiContainer: {
+    alignItems: 'center',
+  },
+  bmiLabel: {
+    fontSize: 12,
+    color: '#666666',
+  },
+  bmiValue: {
     fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 10,
-    textAlign: "center",
+    fontWeight: 'bold',
+    color: '#3E82FC',
   },
-  bmiText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginVertical: 10,
-    textAlign: "center",
-    color: "#007bff",
+  bmiCategory: {
+    fontSize: 12,
+    color: '#666666',
+    marginTop: 2,
   },
-  loader: {
-    marginTop: 20,
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EAECEF',
   },
-  workoutItem: {
+  tab: {
+    flex: 1,
+    paddingVertical: 15,
+    alignItems: 'center',
+  },
+  activeTab: {
+    borderBottomWidth: 3,
+    borderBottomColor: '#3E82FC',
+  },
+  tabText: {
+    fontSize: 16,
+    color: '#666666',
+  },
+  activeTabText: {
+    color: '#3E82FC',
+    fontWeight: 'bold',
+  },
+  content: {
+    flex: 1,
     padding: 15,
-    marginVertical: 5,
-    backgroundColor: "#fff",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#1A1A1A',
+  },
+  workoutGrid: {
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  workoutCard: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
     borderRadius: 10,
-    shadowColor: "#000",
+    overflow: 'hidden',
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 5,
+    shadowRadius: 4,
     elevation: 2,
   },
-  workoutDay: {
-    fontSize: 16,
-    fontWeight: "bold",
+  exerciseImage: {
+    width: '100%',
+    height: 120,
   },
-  workoutDesc: {
-    fontSize: 14,
-    color: "#555",
-  },
-  progressContainer: {
-    marginTop: 20,
+  workoutInfo: {
     padding: 10,
-    backgroundColor: "#e3f2fd",
-    borderRadius: 10,
-    alignItems: "center",
   },
-  progressText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
+  workoutName: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 5,
+    color: '#1A1A1A',
   },
-  badgeText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#d63384",
-    marginTop: 5,
+  workoutMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  metaText: {
+    fontSize: 12,
+    color: '#666666',
+    marginRight: 5,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#999999',
+    marginTop: 20,
+  },
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+    marginTop: 20,
   },
 });
 

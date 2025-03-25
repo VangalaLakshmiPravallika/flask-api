@@ -15,7 +15,7 @@ import PostAchievement from "./src/screens/PostAchievement";
 import GroupPosts from "./src/screens/GroupPosts";
 import MealTracker from "./src/screens/MealTracker";
 import MealSummary from "./src/screens/MealSummary";
-import DietRecommendation from "./src/screens/DietRecommendation"; // ✅ Imported
+import DietRecommendation from "./src/screens/DietRecommendation"; 
 import WorkoutPlan from "./src/screens/WorkoutPlan";
 import ProgressTracker from "./src/screens/ProgressTracker";
 import SoothingMusic from "./src/screens/SoothingMusic";

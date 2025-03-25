@@ -1,41 +1,64 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, Image, TouchableOpacity } from 'react-native';
-import { useAuth } from '../context/AuthContext';
+import { 
+  View, 
+  Text, 
+  FlatList, 
+  StyleSheet, 
+  ActivityIndicator, 
+  Image, 
+  TouchableOpacity, 
+  Alert 
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const FitnessDashboard = () => {
+const WorkoutPlan = () => {
   const [workouts, setWorkouts] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { authToken } = useAuth();
   const [activeTab, setActiveTab] = useState('recommendations');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch('https://healthfitnessbackend.onrender.com/api/get-personalized-workouts', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${authToken}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to fetch data');
-        }
-        
-        setWorkouts(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+  const fetchWorkoutData = async () => {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('Please log in to view recommendations');
       }
-    };
-    
-    fetchData();
-  }, [authToken]);
+
+      const response = await fetch('https://healthfitnessbackend.onrender.com/api/get-personalized-workouts', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        }
+      });
+
+      const responseText = await response.text();
+      
+      // Check if response is HTML (server error page)
+      if (responseText.startsWith('<!DOCTYPE html>') || responseText.startsWith('<')) {
+        throw new Error('Server is currently unavailable. Please try again later.');
+      }
+
+      const data = JSON.parse(responseText);
+      
+      if (!response.ok) {
+        throw new Error(data.message || `Server error: ${response.status}`);
+      }
+
+      setWorkouts(data);
+      setError(null);
+    } catch (err) {
+      console.error('API Error:', err);
+      setError(err.message);
+      Alert.alert('Error', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchWorkoutData();
+  }, []);
 
   const renderWorkout = ({ item }) => (
     <TouchableOpacity style={styles.workoutCard}>
@@ -55,60 +78,35 @@ const FitnessDashboard = () => {
     </TouchableOpacity>
   );
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#3E82FC" />
-      </View>
-    );
-  }
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3E82FC" />
+        </View>
+      );
+    }
 
-  if (error) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>{error}</Text>
-      </View>
-    );
-  }
+    if (error) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => {
+              setLoading(true);
+              setError(null);
+              fetchWorkoutData();
+            }}
+          >
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
 
-  return (
-    <View style={styles.container}>
-      {/* Header with BMI Display */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Fitness Dashboard</Text>
-        {workouts && (
-          <View style={styles.bmiContainer}>
-            <Text style={styles.bmiLabel}>Your BMI</Text>
-            <Text style={styles.bmiValue}>{workouts.bmi.toFixed(1)}</Text>
-            <Text style={styles.bmiCategory}>({workouts.intensity_level})</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Navigation Tabs */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'recommendations' && styles.activeTab]}
-          onPress={() => setActiveTab('recommendations')}
-        >
-          <Text style={[styles.tabText, activeTab === 'recommendations' && styles.activeTabText]}>Recommendations</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'myPlan' && styles.activeTab]}
-          onPress={() => setActiveTab('myPlan')}
-        >
-          <Text style={[styles.tabText, activeTab === 'myPlan' && styles.activeTabText]}>My Plan</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'progress' && styles.activeTab]}
-          onPress={() => setActiveTab('progress')}
-        >
-          <Text style={[styles.tabText, activeTab === 'progress' && styles.activeTabText]}>Progress</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Content Area */}
-      {activeTab === 'recommendations' && workouts && (
+    if (activeTab === 'recommendations' && workouts) {
+      return (
         <View style={styles.content}>
           <Text style={styles.sectionTitle}>Recommended For You</Text>
           <FlatList
@@ -120,21 +118,54 @@ const FitnessDashboard = () => {
             showsVerticalScrollIndicator={false}
           />
         </View>
-      )}
+      );
+    }
 
-      {activeTab === 'myPlan' && (
-        <View style={styles.content}>
-          <Text style={styles.sectionTitle}>Your Workout Plan</Text>
-          <Text style={styles.emptyText}>Your personalized plan will appear here</Text>
-        </View>
-      )}
+    return (
+      <View style={styles.content}>
+        <Text style={styles.sectionTitle}>
+          {activeTab === 'myPlan' ? 'Your Workout Plan' : 'Your Progress'}
+        </Text>
+        <Text style={styles.emptyText}>
+          {activeTab === 'myPlan' 
+            ? 'Your personalized plan will appear here' 
+            : 'Track your fitness journey here'}
+        </Text>
+      </View>
+    );
+  };
 
-      {activeTab === 'progress' && (
-        <View style={styles.content}>
-          <Text style={styles.sectionTitle}>Your Progress</Text>
-          <Text style={styles.emptyText}>Track your fitness journey here</Text>
-        </View>
-      )}
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Fitness Dashboard</Text>
+        {workouts && (
+          <View style={styles.bmiContainer}>
+            <Text style={styles.bmiLabel}>Your BMI</Text>
+            <Text style={styles.bmiValue}>{workouts.bmi.toFixed(1)}</Text>
+            <Text style={styles.bmiCategory}>({workouts.intensity_level})</Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.tabContainer}>
+        {['recommendations', 'myPlan', 'progress'].map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.tab, activeTab === tab && styles.activeTab]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text style={[
+              styles.tabText, 
+              activeTab === tab && styles.activeTabText
+            ]}>
+              {tab === 'myPlan' ? 'My Plan' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {renderContent()}
     </View>
   );
 };
@@ -202,6 +233,33 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 15,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#3E82FC',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 5,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -249,11 +307,6 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: 'center',
     color: '#999999',
-    marginTop: 20,
-  },
-  errorText: {
-    color: 'red',
-    textAlign: 'center',
     marginTop: 20,
   },
 });

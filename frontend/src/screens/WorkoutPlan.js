@@ -13,6 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const WorkoutPlan = () => {
   const [workouts, setWorkouts] = useState(null);
+  const [personalizedWorkouts, setPersonalizedWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('recommendations');
@@ -24,7 +25,8 @@ const WorkoutPlan = () => {
         throw new Error('Please log in to view recommendations');
       }
 
-      const response = await fetch('https://healthfitnessbackend.onrender.com/api/get-personalized-workouts', {
+      // Fetch general recommendations
+      const recommendationsResponse = await fetch('https://healthfitnessbackend.onrender.com/api/get-recommendations', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -32,25 +34,28 @@ const WorkoutPlan = () => {
         }
       });
 
-      const responseText = await response.text();
-      
-      // Check if response is HTML (server error page)
-      if (responseText.startsWith('<!DOCTYPE html>') || responseText.startsWith('<')) {
-        throw new Error('Server is currently unavailable. Please try again later.');
+      // Fetch personalized workouts
+      const personalizedResponse = await fetch('https://healthfitnessbackend.onrender.com/api/get-personalized-workouts', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        }
+      });
+
+      if (!recommendationsResponse.ok || !personalizedResponse.ok) {
+        throw new Error('Failed to fetch workout data');
       }
 
-      const data = JSON.parse(responseText);
-      
-      if (!response.ok) {
-        throw new Error(data.message || `Server error: ${response.status}`);
-      }
+      const recommendationsData = await recommendationsResponse.json();
+      const personalizedData = await personalizedResponse.json();
 
-      setWorkouts(data);
+      setWorkouts(recommendationsData);
+      setPersonalizedWorkouts(personalizedData.recommended_workouts || []);
       setError(null);
     } catch (err) {
       console.error('API Error:', err);
       setError(err.message);
-      Alert.alert('Error', err.message);
     } finally {
       setLoading(false);
     }
@@ -60,7 +65,7 @@ const WorkoutPlan = () => {
     fetchWorkoutData();
   }, []);
 
-  const renderWorkout = ({ item }) => (
+  const renderWorkoutItem = ({ item }) => (
     <TouchableOpacity style={styles.workoutCard}>
       <Image 
         source={{ uri: item.gifUrl || 'https://via.placeholder.com/150' }} 
@@ -111,12 +116,32 @@ const WorkoutPlan = () => {
           <Text style={styles.sectionTitle}>Recommended For You</Text>
           <FlatList
             data={workouts.recommended_workouts}
-            renderItem={renderWorkout}
+            renderItem={renderWorkoutItem}
             keyExtractor={(item) => item.id.toString()}
             numColumns={2}
             columnWrapperStyle={styles.workoutGrid}
             showsVerticalScrollIndicator={false}
           />
+        </View>
+      );
+    }
+
+    if (activeTab === 'personalized' && personalizedWorkouts) {
+      return (
+        <View style={styles.content}>
+          <Text style={styles.sectionTitle}>Personalized For You</Text>
+          {personalizedWorkouts.length > 0 ? (
+            <FlatList
+              data={personalizedWorkouts}
+              renderItem={renderWorkoutItem}
+              keyExtractor={(item) => item.id.toString()}
+              numColumns={2}
+              columnWrapperStyle={styles.workoutGrid}
+              showsVerticalScrollIndicator={false}
+            />
+          ) : (
+            <Text style={styles.emptyText}>No personalized workouts available yet</Text>
+          )}
         </View>
       );
     }
@@ -149,20 +174,30 @@ const WorkoutPlan = () => {
       </View>
 
       <View style={styles.tabContainer}>
-        {['recommendations', 'myPlan', 'progress'].map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.tab, activeTab === tab && styles.activeTab]}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text style={[
-              styles.tabText, 
-              activeTab === tab && styles.activeTabText
-            ]}>
-              {tab === 'myPlan' ? 'My Plan' : tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'recommendations' && styles.activeTab]}
+          onPress={() => setActiveTab('recommendations')}
+        >
+          <Text style={[styles.tabText, activeTab === 'recommendations' && styles.activeTabText]}>
+            Recommended
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'personalized' && styles.activeTab]}
+          onPress={() => setActiveTab('personalized')}
+        >
+          <Text style={[styles.tabText, activeTab === 'personalized' && styles.activeTabText]}>
+            Personalized
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'progress' && styles.activeTab]}
+          onPress={() => setActiveTab('progress')}
+        >
+          <Text style={[styles.tabText, activeTab === 'progress' && styles.activeTabText]}>
+            Progress
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {renderContent()}

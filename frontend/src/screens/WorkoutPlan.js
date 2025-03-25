@@ -7,26 +7,27 @@ import {
   ActivityIndicator, 
   Image, 
   TouchableOpacity, 
-  Alert 
+  Alert,
+  AppState
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const WorkoutPlan = () => {
-  const [workouts, setWorkouts] = useState(null);
+  const [generalWorkouts, setGeneralWorkouts] = useState([]);
   const [personalizedWorkouts, setPersonalizedWorkouts] = useState([]);
+  const [bmiData, setBmiData] = useState({ bmi: null, intensity_level: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('recommendations');
+  const [activeTab, setActiveTab] = useState('general');
 
-  const fetchWorkoutData = async () => {
+  const fetchWorkouts = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
       if (!token) {
         throw new Error('Please log in to view recommendations');
       }
 
-      // Fetch general recommendations
-      const recommendationsResponse = await fetch('https://healthfitnessbackend.onrender.com/api/get-recommendations', {
+      const generalResponse = await fetch('https://healthfitnessbackend.onrender.com/api/get-recommendations', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -43,15 +44,19 @@ const WorkoutPlan = () => {
         }
       });
 
-      if (!recommendationsResponse.ok || !personalizedResponse.ok) {
-        throw new Error('Failed to fetch workout data');
-      }
-
-      const recommendationsData = await recommendationsResponse.json();
+      const generalData = await generalResponse.json();
       const personalizedData = await personalizedResponse.json();
 
-      setWorkouts(recommendationsData);
+      if (!generalResponse.ok || !personalizedResponse.ok) {
+        throw new Error(generalData.error || personalizedData.error || 'Failed to fetch data');
+      }
+
+      setGeneralWorkouts(generalData.recommended_workouts || []);
       setPersonalizedWorkouts(personalizedData.recommended_workouts || []);
+      setBmiData({
+        bmi: personalizedData.bmi,
+        intensity_level: personalizedData.intensity_level
+      });
       setError(null);
     } catch (err) {
       console.error('API Error:', err);
@@ -62,10 +67,20 @@ const WorkoutPlan = () => {
   };
 
   useEffect(() => {
-    fetchWorkoutData();
+    fetchWorkouts();
+
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        fetchWorkouts();
+      }
+    });
+
+    return () => {
+      subscription?.remove();
+    };
   }, []);
 
-  const renderWorkoutItem = ({ item }) => (
+  const renderWorkout = ({ item }) => (
     <TouchableOpacity style={styles.workoutCard}>
       <Image 
         source={{ uri: item.gifUrl || 'https://via.placeholder.com/150' }} 
@@ -83,124 +98,76 @@ const WorkoutPlan = () => {
     </TouchableOpacity>
   );
 
-  const renderContent = () => {
-    if (loading) {
-      return (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3E82FC" />
-        </View>
-      );
-    }
-
-    if (error) {
-      return (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={() => {
-              setLoading(true);
-              setError(null);
-              fetchWorkoutData();
-            }}
-          >
-            <Text style={styles.retryButtonText}>Try Again</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-
-    if (activeTab === 'recommendations' && workouts) {
-      return (
-        <View style={styles.content}>
-          <Text style={styles.sectionTitle}>Recommended For You</Text>
-          <FlatList
-            data={workouts.recommended_workouts}
-            renderItem={renderWorkoutItem}
-            keyExtractor={(item) => item.id.toString()}
-            numColumns={2}
-            columnWrapperStyle={styles.workoutGrid}
-            showsVerticalScrollIndicator={false}
-          />
-        </View>
-      );
-    }
-
-    if (activeTab === 'personalized' && personalizedWorkouts) {
-      return (
-        <View style={styles.content}>
-          <Text style={styles.sectionTitle}>Personalized For You</Text>
-          {personalizedWorkouts.length > 0 ? (
-            <FlatList
-              data={personalizedWorkouts}
-              renderItem={renderWorkoutItem}
-              keyExtractor={(item) => item.id.toString()}
-              numColumns={2}
-              columnWrapperStyle={styles.workoutGrid}
-              showsVerticalScrollIndicator={false}
-            />
-          ) : (
-            <Text style={styles.emptyText}>No personalized workouts available yet</Text>
-          )}
-        </View>
-      );
-    }
-
+  if (loading) {
     return (
-      <View style={styles.content}>
-        <Text style={styles.sectionTitle}>
-          {activeTab === 'myPlan' ? 'Your Workout Plan' : 'Your Progress'}
-        </Text>
-        <Text style={styles.emptyText}>
-          {activeTab === 'myPlan' 
-            ? 'Your personalized plan will appear here' 
-            : 'Track your fitness journey here'}
-        </Text>
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#3E82FC" />
       </View>
     );
-  };
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => {
+            setLoading(true);
+            setError(null);
+            fetchWorkouts();
+          }}
+        >
+          <Text style={styles.retryButtonText}>Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
+      {/* Header with BMI Display */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Fitness Dashboard</Text>
-        {workouts && (
+        <Text style={styles.headerTitle}>Workout Recommendations</Text>
+        {bmiData.bmi !== null && (
           <View style={styles.bmiContainer}>
             <Text style={styles.bmiLabel}>Your BMI</Text>
-            <Text style={styles.bmiValue}>{workouts.bmi.toFixed(1)}</Text>
-            <Text style={styles.bmiCategory}>({workouts.intensity_level})</Text>
+            <Text style={styles.bmiValue}>{bmiData.bmi?.toFixed(1)}</Text>
+            <Text style={styles.bmiCategory}>({bmiData.intensity_level})</Text>
           </View>
         )}
       </View>
 
+      {/* Tab Navigation */}
       <View style={styles.tabContainer}>
         <TouchableOpacity 
-          style={[styles.tab, activeTab === 'recommendations' && styles.activeTab]}
-          onPress={() => setActiveTab('recommendations')}
+          style={[styles.tab, activeTab === 'general' && styles.activeTab]}
+          onPress={() => setActiveTab('general')}
         >
-          <Text style={[styles.tabText, activeTab === 'recommendations' && styles.activeTabText]}>
-            Recommended
-          </Text>
+          <Text style={[styles.tabText, activeTab === 'general' && styles.activeTabText]}>General</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.tab, activeTab === 'personalized' && styles.activeTab]}
           onPress={() => setActiveTab('personalized')}
         >
-          <Text style={[styles.tabText, activeTab === 'personalized' && styles.activeTabText]}>
-            Personalized
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'progress' && styles.activeTab]}
-          onPress={() => setActiveTab('progress')}
-        >
-          <Text style={[styles.tabText, activeTab === 'progress' && styles.activeTabText]}>
-            Progress
-          </Text>
+          <Text style={[styles.tabText, activeTab === 'personalized' && styles.activeTabText]}>Personalized</Text>
         </TouchableOpacity>
       </View>
 
-      {renderContent()}
+      {/* Workout List */}
+      <FlatList
+        data={activeTab === 'general' ? generalWorkouts : personalizedWorkouts}
+        renderItem={renderWorkout}
+        keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
+        contentContainerStyle={styles.listContent}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>
+            {activeTab === 'general' 
+              ? 'No general recommendations available' 
+              : 'Complete your profile to get personalized recommendations'}
+          </Text>
+        }
+      />
     </View>
   );
 };
@@ -264,53 +231,11 @@ const styles = StyleSheet.create({
     color: '#3E82FC',
     fontWeight: 'bold',
   },
-  content: {
-    flex: 1,
-    padding: 15,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    color: 'red',
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  retryButton: {
-    backgroundColor: '#3E82FC',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 5,
-  },
-  retryButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#1A1A1A',
-  },
-  workoutGrid: {
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
   workoutCard: {
-    width: '48%',
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
-    overflow: 'hidden',
-    marginBottom: 15,
+    padding: 15,
+    margin: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -319,13 +244,15 @@ const styles = StyleSheet.create({
   },
   exerciseImage: {
     width: '100%',
-    height: 120,
+    height: 150,
+    borderRadius: 8,
+    marginBottom: 10,
   },
   workoutInfo: {
-    padding: 10,
+    paddingHorizontal: 5,
   },
   workoutName: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     marginBottom: 5,
     color: '#1A1A1A',
@@ -339,10 +266,28 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginRight: 5,
   },
+  listContent: {
+    paddingBottom: 20,
+  },
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+    margin: 20,
+  },
+  retryButton: {
+    backgroundColor: '#3E82FC',
+    padding: 10,
+    borderRadius: 5,
+    alignSelf: 'center',
+  },
+  retryButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
   emptyText: {
     textAlign: 'center',
-    color: '#999999',
     marginTop: 20,
+    color: '#999999',
   },
 });
 

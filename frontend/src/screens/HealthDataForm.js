@@ -22,7 +22,6 @@ import { BlurView } from 'expo-blur';
 
 const { width, height } = Dimensions.get('window');
 
-// Step Components with enhanced visuals
 const NameStep = ({ name, updateName }) => (
   <View style={styles.stepContainer}>
     <View style={styles.iconContainer}>
@@ -155,17 +154,6 @@ const WeightStep = ({ weight, updateWeight }) => (
 );
 
 const SummaryStep = ({ userData }) => {
-  const getBmiCategory = (bmi) => {
-    if (!bmi) return { category: "Calculating...", color: "#FFF" };
-    bmi = parseFloat(bmi);
-    if (bmi < 18.5) return { category: "Underweight", color: "#64B5F6" };
-    if (bmi < 25) return { category: "Normal", color: "#81C784" };
-    if (bmi < 30) return { category: "Overweight", color: "#FFD54F" };
-    return { category: "Obese", color: "#E57373" };
-  };
-
-  const bmiInfo = getBmiCategory(userData.bmi);
-
   return (
     <View style={styles.stepContainer}>
       <View style={styles.iconContainer}>
@@ -207,13 +195,6 @@ const SummaryStep = ({ userData }) => {
             <Text style={styles.summaryLabel}>Weight</Text>
             <Text style={styles.summaryValue}>{userData.weight} kg</Text>
           </View>
-          <View style={styles.summaryItem}>
-            <MaterialCommunityIcons name="scale-bathroom" size={16} color="#4568DC" style={styles.summaryIcon} />
-            <Text style={styles.summaryLabel}>BMI</Text>
-            <Text style={[styles.summaryValue, { color: bmiInfo.color }]}>
-              {userData.bmi || "..."} ({bmiInfo.category})
-            </Text>
-          </View>
         </View>
       </BlurView>
     </View>
@@ -238,7 +219,6 @@ const HealthDataForm = () => {
   const totalSteps = 6;
 
   useEffect(() => {
-    // Reset animation values when component mounts
     slideAnim.setValue(0);
     opacityAnim.setValue(1);
   }, []);
@@ -251,7 +231,6 @@ const HealthDataForm = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
       
-      // Smoother transition with less movement
       Animated.timing(opacityAnim, {
         toValue: 0,
         duration: 120,
@@ -259,7 +238,6 @@ const HealthDataForm = () => {
       }).start(() => {
         setCurrentStep(prevStep => prevStep + 1);
         
-        // Smaller slide value for less shaking
         slideAnim.setValue(width * 0.02);
         
         Animated.parallel([
@@ -287,16 +265,12 @@ const HealthDataForm = () => {
       if (Platform.OS === 'ios') {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-      
-      // Smoother transition with less movement
       Animated.timing(opacityAnim, {
         toValue: 0,
         duration: 120,
         useNativeDriver: true,
       }).start(() => {
         setCurrentStep(prevStep => prevStep - 1);
-        
-        // Smaller slide value for less shaking
         slideAnim.setValue(-width * 0.02);
         
         Animated.parallel([
@@ -355,10 +329,9 @@ const HealthDataForm = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // Update userData with BMI from the response
         setUserData((prevData) => ({ ...prevData, bmi: data.bmi }));
         Alert.alert('Success', `Health Data Saved! Your BMI: ${data.bmi}`);
-        navigation.replace('Home'); // Ensure 'Home' is the correct route name
+        navigation.replace('Home'); 
       } else {
         Alert.alert('Error', data.error || 'Failed to save health data');
       }

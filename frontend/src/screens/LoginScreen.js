@@ -110,6 +110,10 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
+  const handleForgotPassword = () => {
+    navigation.navigate("ForgotPassword"); // Navigate to ForgotPassword screen
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -217,13 +221,9 @@ export default function LoginScreen({ navigation }) {
               </TouchableOpacity>
 
               <View style={styles.footerContainer}>
-                {showForgotPassword && (
-                  <TouchableOpacity
-                    onPress={() => Alert.alert("Reset Password", "A password reset link will be sent to your email.")}
-                  >
-                    <Text style={styles.forgotText}>Forgot Password?</Text>
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity onPress={handleForgotPassword}>
+                  <Text style={styles.forgotText}>Forgot Password?</Text>
+                </TouchableOpacity>
 
                 <TouchableOpacity onPress={() => navigation.navigate("Register")}>
                   <Text style={styles.registerText}>

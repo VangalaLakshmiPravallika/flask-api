@@ -7,11 +7,17 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  ImageBackground,
+  Dimensions,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
 import axios from "axios";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Animatable from 'react-native-animatable';
+
+const { width } = Dimensions.get('window');
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
@@ -24,13 +30,11 @@ const ProfileScreen = () => {
 
   const loadUserData = async () => {
     try {
-      // Retrieve the token from AsyncStorage
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
         throw new Error("User not authenticated");
       }
 
-      // Fetch profile data from the backend
       const response = await axios.get("https://healthfitnessbackend.onrender.com/api/get-profile", {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -53,120 +57,246 @@ const ProfileScreen = () => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4CAF50" />
-      </View>
+      <LinearGradient
+        colors={['#E3F2FD', '#BBDEFB']}
+        style={styles.loadingContainer}
+      >
+        <Animatable.View 
+          animation="pulse"
+          iterationCount="infinite"
+        >
+          <ActivityIndicator size="large" color="#4CAF50" />
+        </Animatable.View>
+      </LinearGradient>
     );
   }
 
+  const getBmiStatus = (bmi) => {
+    if (!bmi) return { color: '#9E9E9E', status: 'N/A' };
+    if (bmi < 18.5) return { color: '#2196F3', status: 'Underweight' };
+    if (bmi < 25) return { color: '#4CAF50', status: 'Healthy' };
+    if (bmi < 30) return { color: '#FFC107', status: 'Overweight' };
+    return { color: '#F44336', status: 'Obese' };
+  };
+
+  const bmiStatus = userData?.bmi ? getBmiStatus(userData.bmi) : getBmiStatus(null);
+
   return (
-    <View style={styles.container}>
+    <ImageBackground 
+      source={require('../../assets/profile-bg.jpeg')}
+      style={styles.backgroundImage}
+      blurRadius={1}
+    >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.profileCard}>
-          <Text style={styles.heading}>
-            <MaterialIcons name="person" size={28} color="#4CAF50" /> User Profile
-          </Text>
+        <Animatable.View 
+          animation="fadeInUp"
+          duration={800}
+          style={styles.profileCard}
+        >
+          <LinearGradient
+            colors={['#4CAF50', '#2E7D32']}
+            style={styles.header}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <MaterialIcons name="person" size={32} color="#fff" />
+            <Text style={styles.heading}>User Profile</Text>
+          </LinearGradient>
 
           {userData ? (
-            <>
-              <Text style={styles.label}>
-                👤 <Text style={styles.text}>Name: {userData.name}</Text>
-              </Text>
-              <Text style={styles.label}>
-                📅 <Text style={styles.text}>Age: {userData.age}</Text>
-              </Text>
-              <Text style={styles.label}>
-                ⚖️ <Text style={styles.text}>Weight: {userData.weight} kg</Text>
-              </Text>
-              <Text style={styles.label}>
-                📏 <Text style={styles.text}>Height: {userData.height} cm</Text>
-              </Text>
-              <Text style={styles.label}>
-                🧬 <Text style={styles.text}>Gender: {userData.gender}</Text>
-              </Text>
-              <Text style={styles.label}>
-                📊 <Text style={styles.text}>BMI: {userData.bmi?.toFixed(2) || "N/A"}</Text>
-              </Text>
-            </>
+            <View style={styles.detailsContainer}>
+              <ProfileDetail 
+                icon="person-outline" 
+                label="Name" 
+                value={userData.name} 
+              />
+              <ProfileDetail 
+                icon="event" 
+                label="Age" 
+                value={userData.age} 
+              />
+              <ProfileDetail 
+                icon="fitness-center" 
+                label="Weight" 
+                value={`${userData.weight} kg`} 
+              />
+              <ProfileDetail 
+                icon="straighten" 
+                label="Height" 
+                value={`${userData.height} cm`} 
+              />
+              <ProfileDetail 
+                icon="wc" 
+                label="Gender" 
+                value={userData.gender} 
+              />
+              
+              <View style={styles.bmiContainer}>
+                <MaterialIcons name="assessment" size={24} color={bmiStatus.color} />
+                <Text style={styles.detailLabel}>BMI: </Text>
+                <Text style={[styles.detailValue, { color: bmiStatus.color }]}>
+                  {userData.bmi?.toFixed(2) || "N/A"}
+                </Text>
+                <Text style={[styles.bmiStatus, { color: bmiStatus.color }]}>
+                  ({bmiStatus.status})
+                </Text>
+              </View>
+            </View>
           ) : (
-            <Text style={styles.noData}>No details available. Please add your details.</Text>
+            <View style={styles.noDataContainer}>
+              <MaterialIcons name="error-outline" size={40} color="#9E9E9E" />
+              <Text style={styles.noDataText}>No details available</Text>
+              <Text style={styles.noDataSubtext}>Please add your profile details</Text>
+            </View>
           )}
 
           <TouchableOpacity
             style={styles.editButton}
             onPress={() => navigation.navigate("EditProfile")}
           >
-            <MaterialIcons name="edit" size={20} color="#fff" />
-            <Text style={styles.buttonText}> Edit Profile</Text>
+            <LinearGradient
+              colors={['#4CAF50', '#2E7D32']}
+              style={styles.buttonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <MaterialIcons name="edit" size={20} color="#fff" />
+              <Text style={styles.buttonText}> Edit Profile</Text>
+            </LinearGradient>
           </TouchableOpacity>
-        </View>
+        </Animatable.View>
       </ScrollView>
-    </View>
+    </ImageBackground>
   );
 };
 
+const ProfileDetail = ({ icon, label, value }) => (
+  <View style={styles.detailRow}>
+    <MaterialIcons name={icon} size={24} color="#4CAF50" />
+    <Text style={styles.detailLabel}>{label}: </Text>
+    <Text style={styles.detailValue}>{value}</Text>
+  </View>
+);
+
 const styles = StyleSheet.create({
-  container: {
+  backgroundImage: {
     flex: 1,
-    backgroundColor: "#E3F2FD",
-    padding: 20,
+    resizeMode: 'cover',
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#E3F2FD",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: "center",
+    padding: 20,
+    paddingBottom: 40,
   },
   profileCard: {
-    backgroundColor: "#ffffff",
-    padding: 20,
-    borderRadius: 15,
-    shadowColor: "#000",
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 5,
-    alignItems: "center",
+    shadowRadius: 20,
+    elevation: 10,
+    overflow: 'hidden',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    paddingVertical: 25,
   },
   heading: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#333",
+    fontWeight: 'bold',
+    color: '#fff',
+    marginLeft: 10,
+    fontFamily: 'sans-serif-medium',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+  },
+  detailsContainer: {
+    padding: 25,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 15,
-    textAlign: "center",
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
   },
-  label: {
-    fontSize: 18,
-    color: "#333",
-    marginBottom: 10,
-  },
-  text: {
-    fontWeight: "bold",
-    color: "#1976D2",
-  },
-  noData: {
+  detailLabel: {
     fontSize: 16,
-    color: "#757575",
-    textAlign: "center",
-    marginBottom: 20,
+    color: '#616161',
+    marginLeft: 10,
+    fontFamily: 'sans-serif',
+    flex: 1,
+  },
+  detailValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1976D2',
+    fontFamily: 'sans-serif-medium',
+  },
+  bmiContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#EEEEEE',
+  },
+  bmiStatus: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    marginLeft: 5,
+    fontFamily: 'sans-serif',
+  },
+  noDataContainer: {
+    alignItems: 'center',
+    padding: 40,
+  },
+  noDataText: {
+    fontSize: 18,
+    color: '#616161',
+    marginTop: 15,
+    fontFamily: 'sans-serif-medium',
+  },
+  noDataSubtext: {
+    fontSize: 14,
+    color: '#9E9E9E',
+    marginTop: 5,
+    fontFamily: 'sans-serif',
   },
   editButton: {
-    marginTop: 20,
-    backgroundColor: "#4CAF50",
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 25,
-    flexDirection: "row",
-    alignItems: "center",
+    margin: 20,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  buttonGradient: {
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   buttonText: {
-    color: "#fff",
+    color: '#fff',
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginLeft: 8,
+    fontFamily: 'sans-serif-medium',
   },
 });
 

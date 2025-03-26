@@ -1,17 +1,32 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Dimensions } from "react-native";
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Dimensions, Animated, Easing } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import MaskedView from '@react-native-masked-view/masked-view';
 import * as Animatable from 'react-native-animatable';
+import { Shadow } from 'react-native-shadow-2';
+import { BlurView } from 'expo-blur';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const AchievementsWall = () => {
   const [achievements, setAchievements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
+  const [scrollY] = useState(new Animated.Value(0));
+
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [180, 100],
+    extrapolate: 'clamp'
+  });
+
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [1, 0.8],
+    extrapolate: 'clamp'
+  });
 
   useEffect(() => {
     fetchAchievements();
@@ -74,90 +89,141 @@ const AchievementsWall = () => {
   const renderAchievementCard = ({ item, index }) => (
     <Animatable.View 
       animation="fadeInUp"
-      delay={index * 100}
-      style={styles.achievementCardContainer}
+      delay={index * 150}
+      duration={800}
+      easing="ease-out-quint"
+      style={styles.cardContainer}
     >
-      <View style={styles.achievementCard}>
-        <LinearGradient
-          colors={['#FF8C00', '#FFA500']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.achievementGradient}
-        >
-          <MaskedView
-            maskElement={
-              <View style={styles.maskContainer}>
-                <Ionicons name="trophy" size={40} />
-              </View>
-            }
+      <Shadow
+        distance={15}
+        startColor={'rgba(71, 118, 230, 0.15)'}
+        offset={[0, 5]}
+        containerViewStyle={styles.shadowContainer}
+      >
+        <View style={styles.achievementCard}>
+          <LinearGradient
+            colors={['#4776E6', '#8E54E9']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.achievementGradient}
           >
-            <LinearGradient
-              colors={['#FFFFFF', '#F0F0F0']}
-              style={styles.gradientMask}
-            />
-          </MaskedView>
-        </LinearGradient>
-        <View style={styles.achievementContent}>
-          <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
-          <Text style={styles.description} numberOfLines={3}>{item.description}</Text>
-          <Text style={styles.user}>Achieved by: {item.user}</Text>
-          <TouchableOpacity 
-            style={styles.postButton} 
-            onPress={() => postToGroup(item.title)} 
-            disabled={posting}
-          >
-            <Ionicons name="share-social" size={20} color="white" />
-            <Text style={styles.postButtonText}>Share Achievement</Text>
-          </TouchableOpacity>
+            <View style={styles.badgeContainer}>
+              <Ionicons name="trophy" size={48} color="rgba(255,255,255,0.9)" />
+              <View style={styles.badgeGlow} />
+            </View>
+          </LinearGradient>
+          
+          <View style={styles.achievementContent}>
+            <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
+            <Text style={styles.description} numberOfLines={3}>{item.description}</Text>
+            
+            <View style={styles.userContainer}>
+              <Ionicons name="person-circle" size={20} color="#7F8C8D" />
+              <Text style={styles.user}>Achieved by: {item.user}</Text>
+            </View>
+            
+            <TouchableOpacity 
+              style={[styles.postButton, posting && styles.postButtonDisabled]} 
+              onPress={() => postToGroup(item.title)} 
+              disabled={posting}
+              activeOpacity={0.7}
+            >
+              <LinearGradient
+                colors={['#4776E6', '#8E54E9']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.postButtonGradient}
+              >
+                {posting ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <>
+                    <Ionicons name="share-social" size={20} color="white" />
+                    <Text style={styles.postButtonText}>Share Achievement</Text>
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </Shadow>
     </Animatable.View>
   );
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#FF6B6B', '#FF8C00']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.headerGradient}
-      >
-        <MaskedView
-          maskElement={
-            <View style={styles.maskContainer}>
-              <Text style={styles.heading}>🏆 Achievements Wall</Text>
-            </View>
+      <Animated.View 
+        style={[
+          styles.headerContainer,
+          { 
+            height: headerHeight,
+            opacity: headerOpacity
           }
+        ]}
+      >
+        <LinearGradient
+          colors={['#4776E6', '#8E54E9']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
         >
-          <LinearGradient
-            colors={['#FFFFFF', '#F0F0F0']}
-            style={styles.gradientMask}
-          />
-        </MaskedView>
-      </LinearGradient>
+          <BlurView intensity={20} tint="light" style={styles.blurContainer}>
+            <MaskedView
+              maskElement={
+                <View style={styles.maskContainer}>
+                  <Text style={styles.heading}>🏆 Achievements Wall</Text>
+                </View>
+              }
+            >
+              <LinearGradient
+                colors={['#FFFFFF', '#F0F0F0']}
+                style={styles.gradientMask}
+              />
+            </MaskedView>
+            <Text style={styles.subheading}>Celebrating your fitness milestones</Text>
+          </BlurView>
+        </LinearGradient>
+      </Animated.View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF8C00" />
+          <ActivityIndicator size="large" color="#4776E6" />
+          <Text style={styles.loadingText}>Loading your achievements...</Text>
         </View>
       ) : achievements.length === 0 ? (
         <View style={styles.emptyStateContainer}>
           <Animatable.View 
             animation="pulse" 
             iterationCount="infinite" 
+            duration={2000}
             style={styles.emptyIcon}
           >
-            <Ionicons name="fitness" size={80} color="#FF8C00" />
+            <LinearGradient
+              colors={['#4776E6', '#8E54E9']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.emptyGradient}
+            >
+              <Ionicons name="fitness" size={80} color="white" />
+            </LinearGradient>
           </Animatable.View>
-          <Text style={styles.noAchievements}>No achievements yet. Keep pushing your limits! 💪</Text>
+          <Text style={styles.noAchievements}>No achievements yet</Text>
+          <Text style={styles.noAchievementsSubtext}>Keep pushing your limits! Your first milestone is just around the corner 💪</Text>
         </View>
       ) : (
-        <FlatList
+        <Animated.FlatList
           data={achievements}
           keyExtractor={(item, index) => index.toString()}
           renderItem={renderAchievementCard}
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false }
+          )}
+          ListHeaderComponent={<View style={{ height: 20 }} />}
+          ListFooterComponent={<View style={{ height: 40 }} />}
         />
       )}
     </View>
@@ -167,23 +233,30 @@ const AchievementsWall = () => {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#F5F5F5'
+    backgroundColor: '#F7F9FC'
+  },
+  headerContainer: {
+    width: '100%',
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
   },
   headerGradient: {
+    flex: 1,
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
-    alignItems: 'center',
+  },
+  blurContainer: {
+    flex: 1,
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5
+    alignItems: 'center',
+    padding: 20,
   },
   maskContainer: {
     backgroundColor: 'transparent',
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -192,55 +265,90 @@ const styles = StyleSheet.create({
     width: '100%'
   },
   heading: { 
-    fontSize: 28, 
+    fontSize: 32, 
     fontWeight: '900', 
     color: 'white', 
-    letterSpacing: 1,
-    textShadowColor: 'rgba(0, 0, 0, 0.25)',
-    textShadowOffset: {width: -1, height: 1},
-    textShadowRadius: 5
+    letterSpacing: 1.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: {width: 1, height: 1},
+    textShadowRadius: 10,
+    marginBottom: 5
+  },
+  subheading: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '500',
+    marginTop: 10,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: {width: 1, height: 1},
+    textShadowRadius: 3,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5'
+    backgroundColor: '#F7F9FC'
+  },
+  loadingText: {
+    marginTop: 20,
+    fontSize: 16,
+    color: '#7F8C8D',
+    fontWeight: '600'
   },
   emptyStateContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#F5F5F5'
+    padding: 30,
+    backgroundColor: '#F7F9FC'
   },
   emptyIcon: {
-    marginBottom: 20
+    marginBottom: 30,
+    borderRadius: 50,
+    overflow: 'hidden'
+  },
+  emptyGradient: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   scrollContainer: { 
-    paddingHorizontal: 15,
+    paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 100 
   },
-  achievementCardContainer: {
-    marginBottom: 15
+  shadowContainer: {
+    marginBottom: 25,
+    borderRadius: 20,
+  },
+  cardContainer: {
+    marginBottom: 20,
   },
   achievementCard: {
     backgroundColor: 'white',
     borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 10,
     flexDirection: 'row',
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)'
+    minHeight: 180,
   },
   achievementGradient: {
     width: 100,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    position: 'relative',
+  },
+  badgeContainer: {
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeGlow: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   achievementContent: {
     flex: 1,
@@ -248,48 +356,65 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between'
   },
   title: { 
-    fontSize: 22, 
+    fontSize: 20, 
     fontWeight: '800', 
-    color: '#333',
-    marginBottom: 10 
+    color: '#2C3E50',
+    marginBottom: 8,
+    letterSpacing: 0.5
   },
   description: { 
-    fontSize: 16, 
-    color: '#666',
-    marginBottom: 10 
+    fontSize: 14, 
+    color: '#34495E',
+    marginBottom: 12,
+    lineHeight: 20,
+    letterSpacing: 0.3
+  },
+  userContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15
   },
   user: { 
-    fontSize: 14, 
-    color: '#999', 
-    fontStyle: 'italic',
-    marginBottom: 15 
+    fontSize: 13, 
+    color: '#7F8C8D', 
+    marginLeft: 5
   },
   postButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    alignSelf: 'stretch',
+  },
+  postButtonDisabled: {
+    opacity: 0.7
+  },
+  postButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FF8C00',
     paddingVertical: 12,
-    borderRadius: 10,
-    alignSelf: 'stretch',
-    shadowColor: '#FF8C00',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5
+    paddingHorizontal: 15
   },
   postButtonText: {
     color: 'white',
     fontWeight: '700',
-    marginLeft: 10,
-    fontSize: 16
+    marginLeft: 8,
+    fontSize: 14,
+    letterSpacing: 0.3
   },
   noAchievements: { 
-    fontSize: 18, 
+    fontSize: 22, 
     textAlign: 'center', 
-    color: '#666', 
-    marginTop: 20,
-    fontWeight: '600'
+    color: '#2C3E50', 
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    marginBottom: 10
+  },
+  noAchievementsSubtext: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#7F8C8D',
+    lineHeight: 24,
+    paddingHorizontal: 30
   }
 });
 

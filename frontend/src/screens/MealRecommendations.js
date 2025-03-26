@@ -1,150 +1,197 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Button, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { 
+  View, 
+  Text, 
+  FlatList, 
+  Button, 
+  ActivityIndicator, 
+  TouchableOpacity, 
+  StyleSheet,
+  Alert,
+  RefreshControl
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
-const MealRecommendations = () => {
-  const [recommendations, setRecommendations] = useState(null);
+const API_BASE_URL = "https://healthfitnessbackend.onrender.com"; 
+
+const MealRecommendations = ({ navigation }) => {
+  const [mealPlan, setMealPlan] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [user, setUser] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [token, setToken] = useState(null);
 
-  const API_BASE_URL = 'http://your-render-server-url';
-
-  // Fetch user token and data on component mount
+  // Load token and initial data
   useEffect(() => {
-    const fetchUserData = async () => {
+    const loadToken = async () => {
       const storedToken = await AsyncStorage.getItem('authToken');
-      if (storedToken) {
-        setToken(storedToken);
-        try {
-          // Fetch basic user data (you may need to create this endpoint)
-          const response = await fetch(`${API_BASE_URL}/api/user`, {
-            headers: {
-              'Authorization': `Bearer ${storedToken}`,
-            },
-          });
-          const userData = await response.json();
-          setUser(userData);
-        } catch (error) {
-          console.error('Error fetching user data:', error);
-        }
+      setToken(storedToken);
+      if (!storedToken) {
+        navigation.navigate('Login');
       }
     };
-    fetchUserData();
+    loadToken();
   }, []);
 
-  const fetchRecommendations = async () => {
-    if (!token) return;
-    
-    setIsLoading(true);
+  // Fetch user profile
+  const fetchProfile = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/meal-recommendations`, {
+      const response = await fetch(`${API_BASE_URL}/api/get-profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
-      
-      const data = await response.json();
-      if (response.ok) {
-        setRecommendations(data);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data = await response.json();
+      setProfile(data);
     } catch (error) {
-      console.error('Error fetching recommendations:', error);
-    } finally {
-      setIsLoading(false);
+      console.error('Error fetching profile:', error);
+      Alert.alert('Error', 'Failed to load profile data');
     }
   };
 
-  const logRecommendation = async (foods) => {
+  // Fetch meal plan
+  const fetchMealPlan = async () => {
+    setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/log-meal`, {
-        method: 'POST',
+      const response = await fetch(`${API_BASE_URL}/api/meal-plan`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          meals: {
-            'recommended': foods
-          }
-        }),
       });
-      
-      if (response.ok) {
-        alert('Meal logged successfully!');
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data = await response.json();
+      setMealPlan(data);
     } catch (error) {
-      console.error('Error logging meal:', error);
+      console.error('Error fetching meal plan:', error);
+      Alert.alert('Error', 'Failed to load meal recommendations');
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
     }
   };
+
+  // Handle refresh
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchData();
+  };
+
+  // Fetch all data
+  const fetchData = async () => {
+    await fetchProfile();
+    await fetchMealPlan();
+  };
+
+  // Load data when token changes
+  useEffect(() => {
+    if (token) {
+      fetchData();
+    }
+  }, [token]);
+
+  // Format numbers safely
+  const safeToFixed = (value, digits = 0) => {
+    const num = parseFloat(value);
+    return isNaN(num) ? 'N/A' : num.toFixed(digits);
+  };
+
+  // Render meal item
+  const renderMealItem = ({ item }) => (
+    <View style={styles.mealCard}>
+      <Text style={styles.mealTitle}>{item.mealType || 'Meal'}</Text>
+      
+      <View style={styles.nutritionSummary}>
+        <Text>{safeToFixed(item.total_calories)} cal</Text>
+        <Text>P: {safeToFixed(item.total_protein)}g</Text>
+        <Text>C: {safeToFixed(item.total_carbs)}g</Text>
+        <Text>F: {safeToFixed(item.total_fat)}g</Text>
+      </View>
+      
+      <FlatList
+        data={item.foods}
+        keyExtractor={(food) => food.name}
+        renderItem={({ item: food }) => (
+          <View style={styles.foodItem}>
+            <Text>{food.name}</Text>
+            <Text>{safeToFixed(food.calories)} cal</Text>
+          </View>
+        )}
+      />
+    </View>
+  );
 
   if (!token) {
     return (
       <View style={styles.authContainer}>
         <Text style={styles.authText}>Please login to view recommendations</Text>
+        <Button 
+          title="Go to Login" 
+          onPress={() => navigation.navigate('Login')} 
+        />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {user && (
-        <View style={styles.userInfo}>
-          <Text style={styles.greeting}>Hello, {user.name || user.email}!</Text>
-          {user.bmi && (
-            <Text style={styles.stats}>Your BMI: {user.bmi.toFixed(1)} • Daily Calories: {user.daily_calories.toFixed(0)}</Text>
-          )}
+      {/* Profile Info */}
+      {profile && (
+        <View style={styles.profileContainer}>
+          <Text style={styles.profileName}>{profile.name || profile.email}</Text>
+          <View style={styles.statsRow}>
+            <Text style={styles.stat}>BMI: {safeToFixed(profile.bmi, 1)}</Text>
+            <Text style={styles.stat}>Calories: {safeToFixed(profile.daily_calories, 0)}</Text>
+          </View>
         </View>
       )}
 
-      <Button 
-        title="Get Personalized Recommendations"
-        onPress={fetchRecommendations}
-        disabled={isLoading}
-        color="#4CAF50"
+      {/* Refresh Control */}
+      <RefreshControl
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
       />
 
+      {/* Loading Indicator */}
       {isLoading && <ActivityIndicator size="large" style={styles.loader} />}
 
-      {recommendations && (
-        <View style={styles.recommendationsContainer}>
-          <Text style={styles.sectionTitle}>Recommended Meals</Text>
-          
-          <FlatList
-            data={recommendations.meals}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={({ item }) => (
-              <View style={styles.mealCard}>
-                <Text style={styles.mealTitle}>{item.mealType}</Text>
-                
-                <View style={styles.nutritionSummary}>
-                  <Text style={styles.nutritionText}>{item.totalCalories} cal</Text>
-                  <Text style={styles.nutritionText}>P: {item.protein}g</Text>
-                  <Text style={styles.nutritionText}>C: {item.carbs}g</Text>
-                  <Text style={styles.nutritionText}>F: {item.fats}g</Text>
-                </View>
-                
-                <FlatList
-                  data={item.foods}
-                  keyExtractor={(food) => food.name}
-                  renderItem={({ item: food }) => (
-                    <View style={styles.foodItem}>
-                      <Text>{food.name}</Text>
-                      <Text>{food.calories} cal</Text>
-                    </View>
-                  )}
-                />
-                
-                <TouchableOpacity 
-                  style={styles.logButton}
-                  onPress={() => logRecommendation(item.foods)}
-                >
-                  <Text style={styles.logButtonText}>Log This Meal</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          />
-        </View>
+      {/* Meal Plan */}
+      {mealPlan ? (
+        <FlatList
+          data={[
+            { ...mealPlan.breakfast, mealType: 'Breakfast' },
+            { ...mealPlan.lunch, mealType: 'Lunch' },
+            { ...mealPlan.dinner, mealType: 'Dinner' },
+            ...mealPlan.snacks.map((snack, i) => ({ 
+              ...snack, 
+              mealType: `Snack ${i + 1}` 
+            }))
+          ]}
+          renderItem={renderMealItem}
+          keyExtractor={(item, index) => index.toString()}
+          contentContainerStyle={styles.listContent}
+        />
+      ) : (
+        !isLoading && (
+          <View style={styles.emptyState}>
+            <Ionicons name="nutrition-outline" size={50} color="#ccc" />
+            <Text style={styles.emptyText}>No meal recommendations available</Text>
+            <Button 
+              title="Try Again" 
+              onPress={fetchMealPlan} 
+              color="#4CAF50"
+            />
+          </View>
+        )
       )}
     </View>
   );
@@ -160,38 +207,35 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
   authText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  userInfo: {
+    fontSize: 18,
     marginBottom: 20,
-    padding: 15,
+    textAlign: 'center',
+  },
+  profileContainer: {
     backgroundColor: '#fff',
+    padding: 15,
     borderRadius: 8,
+    marginBottom: 15,
     elevation: 2,
   },
-  greeting: {
+  profileName: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 5,
   },
-  stats: {
-    fontSize: 14,
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  stat: {
+    fontSize: 16,
     color: '#666',
   },
   loader: {
     marginVertical: 20,
-  },
-  recommendationsContainer: {
-    marginTop: 20,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#333',
   },
   mealCard: {
     backgroundColor: '#fff',
@@ -214,10 +258,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  nutritionText: {
-    fontSize: 14,
-    color: '#555',
-  },
   foodItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -225,16 +265,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f5f5f5',
   },
-  logButton: {
-    marginTop: 10,
-    backgroundColor: '#4CAF50',
-    padding: 10,
-    borderRadius: 5,
-    alignItems: 'center',
+  listContent: {
+    paddingBottom: 20,
   },
-  logButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: '#666',
+    marginVertical: 20,
+    textAlign: 'center',
   },
 });
 

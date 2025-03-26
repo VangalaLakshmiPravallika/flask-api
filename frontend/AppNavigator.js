@@ -1,9 +1,11 @@
 import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
-
 import LoginScreen from "./src/screens/LoginScreen";
 import RegisterScreen from "./src/screens/RegisterScreen";
+import ForgotPasswordScreen from "./src/screens/ForgotPasswordScreen";
+import OTPVerificationScreen from "./src/screens/OTPVerificationScreen";
+import ResetPasswordScreen from "./src/screens/ResetPasswordScreen";
 import HomeScreen from "./src/screens/HomeScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import HealthDataForm from "./src/screens/HealthDataForm";
@@ -15,7 +17,7 @@ import PostAchievement from "./src/screens/PostAchievement";
 import GroupPosts from "./src/screens/GroupPosts";
 import MealTracker from "./src/screens/MealTracker";
 import MealSummary from "./src/screens/MealSummary";
-import MealRecommendations from "./src/screens/MealRecommendations"; // Updated import
+import MealRecommendations from "./src/screens/MealRecommendations";
 import WorkoutPlan from "./src/screens/WorkoutPlan";
 import ProgressTracker from "./src/screens/ProgressTracker";
 import SoothingMusic from "./src/screens/SoothingMusic";
@@ -57,6 +59,26 @@ export default function AppNavigator() {
           name="Register" 
           component={RegisterScreen} 
           options={{ headerShown: false }} 
+        />
+        
+        {/* Password Reset Flow */}
+        <Stack.Screen 
+          name="ForgotPassword" 
+          component={ForgotPasswordScreen} 
+          options={{ title: "Forgot Password" }} 
+        />
+        <Stack.Screen 
+          name="OTPVerification" 
+          component={OTPVerificationScreen} 
+          options={{ title: "Verify OTP" }} 
+        />
+        <Stack.Screen 
+          name="ResetPassword" 
+          component={ResetPasswordScreen} 
+          options={{ 
+            title: "Reset Password",
+            headerLeft: null // Disable back button
+          }} 
         />
 
         {/* Health Data Form */}

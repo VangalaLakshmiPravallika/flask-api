@@ -5,11 +5,19 @@ import {
   FlatList, 
   StyleSheet, 
   ActivityIndicator, 
-  Button, 
+  TouchableOpacity, 
   Alert, 
-  AppState 
+  AppState,
+  Dimensions 
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import * as Animatable from 'react-native-animatable';
+import MaskedView from '@react-native-masked-view/masked-view';
+import { BlurView } from 'expo-blur';
+
+const { width, height } = Dimensions.get('window');
 
 const AchievementsWall = () => {
   const [achievements, setAchievements] = useState([]);
@@ -61,90 +69,209 @@ const AchievementsWall = () => {
     }
   };
 
+  const renderAchievementCard = ({ item, index }) => (
+    <Animatable.View 
+      animation="fadeInUp"
+      delay={index * 100}
+      style={styles.achievementCardContainer}
+    >
+      <BlurView intensity={20} style={styles.achievementCard}>
+        <LinearGradient
+          colors={['#4A90E2', '#50C878']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.achievementCardGradient}
+        >
+          <View style={styles.achievementCardContent}>
+            <Ionicons name="trophy" size={40} color="white" style={styles.trophyIcon} />
+            <View style={styles.achievementTextContainer}>
+              <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
+              <Text style={styles.description} numberOfLines={3}>{item.description}</Text>
+              <Text style={styles.user}>Achieved by: {item.user}</Text>
+            </View>
+          </View>
+        </LinearGradient>
+      </BlurView>
+    </Animatable.View>
+  );
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>🏆 Achievements Wall</Text>
+    <LinearGradient
+      colors={['#667EEA', '#764BA2']}
+      style={styles.container}
+    >
+      <Animatable.View 
+        animation="fadeInDown"
+        style={styles.headerContainer}
+      >
+        <MaskedView
+          maskElement={
+            <View style={styles.maskContainer}>
+              <Text style={styles.heading}>🏆 Achievements Wall</Text>
+            </View>
+          }
+        >
+          <LinearGradient
+            colors={['#FFFFFF', '#F0F0F0']}
+            style={styles.gradientMask}
+          />
+        </MaskedView>
+      </Animatable.View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="blue" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FFFFFF" />
+        </View>
       ) : achievements.length === 0 ? (
-        <Text style={styles.noAchievementsText}>
-          No achievements yet. Keep working towards your goals!
-        </Text>
+        <Animatable.View 
+          animation="bounceIn"
+          style={styles.emptyStateContainer}
+        >
+          <Ionicons name="fitness" size={80} color="#FFFFFF" />
+          <Text style={styles.noAchievementsText}>
+            No achievements yet. Keep pushing your limits! 💪
+          </Text>
+        </Animatable.View>
       ) : (
         <FlatList
           data={achievements}
           keyExtractor={(item, index) => index.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.achievementCard}>
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.description}>{item.description}</Text>
-              <Text style={styles.user}>By: {item.user}</Text>
-            </View>
-          )}
+          renderItem={renderAchievementCard}
           contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
         />
       )}
 
-      <View style={styles.buttonContainer}>
-        <Button title="Clear Logs" onPress={clearAchievements} color="red" />
-      </View>
-    </View>
+      <Animatable.View 
+        animation="fadeInUp"
+        style={styles.buttonContainer}
+      >
+        <TouchableOpacity 
+          onPress={clearAchievements} 
+          style={styles.clearButton}
+        >
+          <LinearGradient
+            colors={['#FF6B6B', '#FF8C00']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.clearButtonGradient}
+          >
+            <Ionicons name="trash" size={20} color="white" />
+            <Text style={styles.clearButtonText}>Clear Logs</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animatable.View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    padding: 20, 
-    backgroundColor: "#E8F5E9" 
+  container: {
+    flex: 1,
   },
-  heading: { 
-    fontSize: 26, 
-    fontWeight: "bold", 
-    marginBottom: 20, 
-    textAlign: "center", 
-    color: "#2C3E50" 
+  headerContainer: {
+    paddingTop: 50,
+    paddingBottom: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  maskContainer: {
+    backgroundColor: 'transparent',
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  gradientMask: {
+    flex: 1,
+    width: '100%'
+  },
+  heading: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: 'white',
+    letterSpacing: 1,
+    textShadowColor: 'rgba(0, 0, 0, 0.25)',
+    textShadowOffset: {width: -1, height: 1},
+    textShadowRadius: 5
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  scrollContainer: {
+    paddingHorizontal: 15,
+    paddingTop: 20,
+    paddingBottom: 100
+  },
+  achievementCardContainer: {
+    marginBottom: 15,
+  },
+  achievementCard: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  achievementCardGradient: {
+    padding: 15,
+  },
+  achievementCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  trophyIcon: {
+    marginRight: 15,
+  },
+  achievementTextContainer: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: 'white',
+    marginBottom: 5,
+  },
+  description: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 5,
+  },
+  user: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+    fontStyle: 'italic',
   },
   noAchievementsText: {
+    fontSize: 18,
+    textAlign: 'center',
+    color: 'white',
+    marginTop: 20,
+    fontWeight: '600',
+  },
+  buttonContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  clearButton: {
+    borderRadius: 15,
+    overflow: 'hidden',
+  },
+  clearButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 15,
+  },
+  clearButtonText: {
+    color: 'white',
+    fontWeight: '700',
+    marginLeft: 10,
     fontSize: 16,
-    textAlign: "center",
-    color: "#7F8C8D",
-    marginTop: 20
-  },
-  scrollContainer: { flexGrow: 1 },
-  achievementCard: {
-    padding: 15,
-    backgroundColor: "#F9E79F", 
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
-    elevation: 4,
-    borderLeftWidth: 5,
-    borderLeftColor: "#D4AC0D", 
-  },
-  title: { 
-    fontSize: 18, 
-    fontWeight: "bold", 
-    color: "#2C3E50" 
-  },
-  description: { 
-    fontSize: 16, 
-    color: "#555", 
-    marginBottom: 5 
-  },
-  user: { 
-    fontSize: 14, 
-    fontStyle: "italic", 
-    color: "#777", 
-    marginBottom: 10 
-  },
-  buttonContainer: { 
-    marginTop: 20, 
-    alignItems: "center" 
   },
 });
 

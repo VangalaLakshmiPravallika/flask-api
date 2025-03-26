@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, FlatList, Image, TouchableOpacity, ActivityIndi
 import { LinearGradient } from "expo-linear-gradient";
 import { WebView } from "react-native-webview";
 
-const BASE_URL = "https://healthfitnessbackend.onrender.com/api/news"; // Replace with your backend URL
+const BASE_URL = "https://healthfitnessbackend.onrender.com/api/news"; 
 
 export default function App() {
   const [news, setNews] = useState([]);

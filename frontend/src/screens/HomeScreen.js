@@ -65,6 +65,21 @@ const HomeScreen = () => {
     }
   };
 
+  // Array of menu items with proper display names
+  const menuItems = [
+    { screen: "SleepTracker", name: "Sleep Tracker" },
+    { screen: "Achievements", name: "Achievements" },
+    { screen: "JoinGroup", name: "Join Group" },
+    { screen: "MealTracker", name: "Meal Tracker" },
+    { screen: "MealRecommendations", name: "Diet Recommendations" }, // Added this line
+    { screen: "WorkoutPlan", name: "Workout Plan" },
+    { screen: "ProgressTracker", name: "Progress Tracker" },
+    { screen: "StepCounter", name: "Step Counter" },
+    { screen: "StepHistory", name: "Step History" },
+    { screen: "ChatBot", name: "Chat Bot" },
+    { screen: "Challenges", name: "Challenges" }
+  ];
+
   return (
     <ImageBackground
       source={{ uri: "https://img.freepik.com/free-photo/top-view-yoga-essential-items_23-2149458975.jpg?t=st=1740846870~exp=1740850470~hmac=5c2f451381c50cb6bb7460cf79b7d4bedfde292cc52bcc04092ee3ce7ba4c0e6&w=740" }}
@@ -86,20 +101,16 @@ const HomeScreen = () => {
 
         {/* ✅ Scrollable Menu Items */}
         <ScrollView style={styles.menuScroll} showsVerticalScrollIndicator={false}>
-          {[
-            "SleepTracker", "Achievements", "JoinGroup", "MealTracker", 
-            "WorkoutPlan", "ProgressTracker", "StepCounter", "StepHistory", 
-            "ChatBot", "Challenges"
-          ].map((screen, index) => (
+          {menuItems.map((item, index) => (
             <TouchableOpacity 
               key={index} 
               style={styles.menuItem} 
               onPress={() => { 
                 setMenuVisible(false); 
-                navigation.navigate(screen);
+                navigation.navigate(item.screen);
               }}
             >
-              <Text style={styles.menuText}>{screen.replace(/([A-Z])/g, " $1").trim()}</Text>
+              <Text style={styles.menuText}>{item.name}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>

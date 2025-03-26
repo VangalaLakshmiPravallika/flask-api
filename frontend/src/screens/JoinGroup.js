@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { 
   View, Text, FlatList, Alert, TouchableOpacity, ActivityIndicator, StyleSheet, 
-  ImageBackground, SafeAreaView, StatusBar, Modal, TextInput, Button
+  ImageBackground, SafeAreaView, StatusBar, Modal, TextInput
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 
 const JoinGroup = () => {
   const [groups, setGroups] = useState([]); 
@@ -31,7 +32,7 @@ const JoinGroup = () => {
       setGroups(response.data);
     } catch (error) {
       console.error("Error fetching groups:", error);
-      Alert.alert("⚠️ Error", "Failed to load groups.");
+      Alert.alert("⚠ Error", "Failed to load groups.");
     }
   };
 
@@ -39,7 +40,7 @@ const JoinGroup = () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
-        Alert.alert("⚠️ Login Required", "Please log in.");
+        Alert.alert("⚠ Login Required", "Please log in.");
         return;
       }
 
@@ -61,7 +62,7 @@ const JoinGroup = () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
-        Alert.alert("⚠️ Login Required", "Please log in.");
+        Alert.alert("⚠ Login Required", "Please log in.");
         return;
       }
 
@@ -75,7 +76,7 @@ const JoinGroup = () => {
       setUserGroups([...userGroups, groupName]); 
     } catch (error) {
       console.error("Error joining group:", error.response?.data);
-      Alert.alert("⚠️ Error", error.response?.data?.error || "Could not join group");
+      Alert.alert("⚠ Error", error.response?.data?.error || "Could not join group");
     }
   };
 
@@ -83,7 +84,7 @@ const JoinGroup = () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
-        Alert.alert("⚠️ Login Required", "Please log in.");
+        Alert.alert("⚠ Login Required", "Please log in.");
         return;
       }
 
@@ -97,7 +98,7 @@ const JoinGroup = () => {
       setUserGroups(userGroups.filter(group => group !== groupName));
     } catch (error) {
       console.error("Error leaving group:", error.response?.data);
-      Alert.alert("⚠️ Error", error.response?.data?.error || "Could not leave group");
+      Alert.alert("⚠ Error", error.response?.data?.error || "Could not leave group");
     }
   };
 
@@ -105,7 +106,7 @@ const JoinGroup = () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
-        Alert.alert("⚠️ Login Required", "Please log in.");
+        Alert.alert("⚠ Login Required", "Please log in.");
         return;
       }
 
@@ -121,7 +122,7 @@ const JoinGroup = () => {
       setNewGroupName("");
     } catch (error) {
       console.error("Error creating group:", error.response?.data);
-      Alert.alert("⚠️ Error", error.response?.data?.error || "Could not create group");
+      Alert.alert("⚠ Error", error.response?.data?.error || "Could not create group");
     }
   };
 
@@ -129,7 +130,7 @@ const JoinGroup = () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
-        Alert.alert("⚠️ Login Required", "Please log in.");
+        Alert.alert("⚠ Login Required", "Please log in.");
         return;
       }
 
@@ -145,7 +146,7 @@ const JoinGroup = () => {
       setGroupToDelete("");
     } catch (error) {
       console.error("Error deleting group:", error.response?.data);
-      Alert.alert("⚠️ Error", error.response?.data?.error || "Could not delete group");
+      Alert.alert("⚠ Error", error.response?.data?.error || "Could not delete group");
     }
   };
 
@@ -153,7 +154,7 @@ const JoinGroup = () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
-        Alert.alert("⚠️ Login Required", "Please log in.");
+        Alert.alert("⚠ Login Required", "Please log in.");
         return;
       }
 
@@ -166,7 +167,7 @@ const JoinGroup = () => {
       setIsDetailsModalVisible(true);
     } catch (error) {
       console.error("Error fetching group details:", error.response?.data);
-      Alert.alert("⚠️ Error", error.response?.data?.error || "Could not fetch group details");
+      Alert.alert("⚠ Error", error.response?.data?.error || "Could not fetch group details");
     }
   };
 
@@ -186,7 +187,15 @@ const JoinGroup = () => {
               style={styles.createGroupButton}
               onPress={() => setIsCreateModalVisible(true)}
             >
-              <Text style={styles.createGroupButtonText}>Create Group</Text>
+              <LinearGradient
+                colors={['#4CAF50', '#2E7D32']}
+                style={styles.gradientButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <Ionicons name="add-circle-outline" size={20} color="white" />
+                <Text style={styles.createGroupButtonText}> Create Group</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
 
@@ -213,7 +222,12 @@ const JoinGroup = () => {
                       <Text style={[styles.groupName, userGroups.includes(item.name) && styles.joinedGroupName]}>
                         {userGroups.includes(item.name) ? `${item.name} ✓` : item.name}
                       </Text>
-                      <Text style={styles.groupMembers}>{Math.floor(Math.random() * 100) + 5} members</Text>
+                      <View style={styles.memberCount}>
+                        <Ionicons name="people-outline" size={16} color={userGroups.includes(item.name) ? "white" : "#7F8C8D"} />
+                        <Text style={[styles.groupMembers, userGroups.includes(item.name) && styles.joinedGroupMembers]}>
+                          {Math.floor(Math.random() * 100) + 5}
+                        </Text>
+                      </View>
                     </View>
                     
                     {!userGroups.includes(item.name) ? (
@@ -221,7 +235,15 @@ const JoinGroup = () => {
                         style={styles.joinButton}
                         onPress={() => joinGroup(item.name)}
                       >
-                        <Text style={styles.buttonText}>Join Community</Text>
+                        <LinearGradient
+                          colors={['#3498DB', '#2980B9']}
+                          style={styles.gradientButton}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                        >
+                          <MaterialIcons name="group-add" size={20} color="white" />
+                          <Text style={styles.buttonText}> Join Community</Text>
+                        </LinearGradient>
                       </TouchableOpacity>
                     ) : (
                       <View style={styles.actionButtons}>
@@ -229,20 +251,46 @@ const JoinGroup = () => {
                           style={styles.postButton}
                           onPress={() => navigation.navigate("PostAchievement", { group: item.name })}
                         >
-                          <Text style={styles.postButtonText}>📢 Share Achievement</Text>
+                          <LinearGradient
+                            colors={['#9b59b6', '#8e44ad']}
+                            style={styles.gradientButton}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                          >
+                            <Ionicons name="megaphone-outline" size={18} color="white" />
+                            <Text style={styles.postButtonText}> Share Achievement</Text>
+                          </LinearGradient>
                         </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.leaveButton}
-                          onPress={() => leaveGroup(item.name)}
-                        >
-                          <Text style={styles.leaveButtonText}>Leave</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.detailsButton}
-                          onPress={() => fetchGroupDetails(item.name)}
-                        >
-                          <Text style={styles.detailsButtonText}>View Details</Text>
-                        </TouchableOpacity>
+                        <View style={styles.buttonRow}>
+                          <TouchableOpacity
+                            style={styles.detailsButton}
+                            onPress={() => fetchGroupDetails(item.name)}
+                          >
+                            <LinearGradient
+                              colors={['#FFA500', '#FF8C00']}
+                              style={styles.gradientButton}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 0 }}
+                            >
+                              <Ionicons name="information-circle-outline" size={18} color="white" />
+                              <Text style={styles.detailsButtonText}> Details</Text>
+                            </LinearGradient>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.leaveButton}
+                            onPress={() => leaveGroup(item.name)}
+                          >
+                            <LinearGradient
+                              colors={['#FF5252', '#D32F2F']}
+                              style={styles.gradientButton}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 0 }}
+                            >
+                              <MaterialIcons name="exit-to-app" size={18} color="white" />
+                              <Text style={styles.leaveButtonText}> Leave</Text>
+                            </LinearGradient>
+                          </TouchableOpacity>
+                        </View>
                         {userGroups.includes(item.name) && (
                           <TouchableOpacity
                             style={styles.deleteButton}
@@ -251,7 +299,15 @@ const JoinGroup = () => {
                               setIsDeleteModalVisible(true);
                             }}
                           >
-                            <Text style={styles.deleteButtonText}>Delete Group</Text>
+                            <LinearGradient
+                              colors={['#FF4500', '#D84315']}
+                              style={styles.gradientButton}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 0 }}
+                            >
+                              <MaterialIcons name="delete-outline" size={18} color="white" />
+                              <Text style={styles.deleteButtonText}> Delete Group</Text>
+                            </LinearGradient>
                           </TouchableOpacity>
                         )}
                       </View>
@@ -277,11 +333,24 @@ const JoinGroup = () => {
             <TextInput
               style={styles.input}
               placeholder="Enter group name"
+              placeholderTextColor="#999"
               value={newGroupName}
               onChangeText={setNewGroupName}
             />
-            <Button title="Create" onPress={createGroup} />
-            <Button title="Cancel" onPress={() => setIsCreateModalVisible(false)} />
+            <View style={styles.modalButtonContainer}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setIsCreateModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={createGroup}
+              >
+                <Text style={styles.modalButtonText}>Create</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -297,8 +366,20 @@ const JoinGroup = () => {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Delete Group</Text>
             <Text style={styles.modalText}>Are you sure you want to delete the group "{groupToDelete}"?</Text>
-            <Button title="Delete" onPress={deleteGroup} />
-            <Button title="Cancel" onPress={() => setIsDeleteModalVisible(false)} />
+            <View style={styles.modalButtonContainer}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setIsDeleteModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.deleteConfirmButton]}
+                onPress={deleteGroup}
+              >
+                <Text style={styles.modalButtonText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -314,13 +395,27 @@ const JoinGroup = () => {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Group Details</Text>
             {selectedGroupDetails && (
-              <>
-                <Text style={styles.modalText}>Name: {selectedGroupDetails.name}</Text>
-                <Text style={styles.modalText}>Members: {selectedGroupDetails.members.length}</Text>
-                <Text style={styles.modalText}>Posts: {selectedGroupDetails.posts.length}</Text>
-              </>
+              <View style={styles.detailsContainer}>
+                <View style={styles.detailRow}>
+                  <Ionicons name="people-outline" size={20} color="#3a7bd5" />
+                  <Text style={styles.detailText}>{selectedGroupDetails.name}</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Ionicons name="person-outline" size={20} color="#3a7bd5" />
+                  <Text style={styles.detailText}>Members: {selectedGroupDetails.members.length}</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Ionicons name="document-text-outline" size={20} color="#3a7bd5" />
+                  <Text style={styles.detailText}>Posts: {selectedGroupDetails.posts.length}</Text>
+                </View>
+              </View>
             )}
-            <Button title="Close" onPress={() => setIsDetailsModalVisible(false)} />
+            <TouchableOpacity
+              style={[styles.modalButton, styles.closeButton]}
+              onPress={() => setIsDetailsModalVisible(false)}
+            >
+              <Text style={styles.modalButtonText}>Close</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -363,18 +458,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#B8C6DB",
     textAlign: "center",
-    marginBottom: 10,
+    marginBottom: 20,
   },
   createGroupButton: {
-    backgroundColor: "#4CAF50",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
+    width: '60%',
+    borderRadius: 25,
+    overflow: 'hidden',
     marginTop: 10,
+    elevation: 5,
+  },
+  gradientButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
   },
   createGroupButtonText: {
     color: "white",
-    fontWeight: "bold",
+    fontWeight: "600",
     fontSize: 16,
   },
   loaderContainer: {
@@ -388,17 +490,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   listContainer: {
-    paddingBottom: 100,
+    paddingBottom: 30,
   },
   groupContainer: {
     marginBottom: 15,
     borderRadius: 16,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
   },
   groupGradient: {
     padding: 20,
@@ -408,115 +510,163 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 15,
   },
   groupName: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 18,
+    fontWeight: "600",
     color: "#2C3E50",
     flex: 1,
   },
   joinedGroupName: {
     color: "#FFFFFF",
   },
+  memberCount: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   groupMembers: {
     fontSize: 14,
     color: "#7F8C8D",
+    marginLeft: 5,
+  },
+  joinedGroupMembers: {
+    color: "rgba(255,255,255,0.8)",
   },
   joinButton: {
-    backgroundColor: "#3498DB",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    alignItems: "center",
+    borderRadius: 25,
+    overflow: 'hidden',
+    marginTop: 5,
   },
   buttonText: {
     color: "white",
-    fontWeight: "bold",
+    fontWeight: "600",
     fontSize: 16,
   },
   actionButtons: {
     flexDirection: "column",
     gap: 10,
+    marginTop: 10,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 10,
   },
   postButton: {
-    backgroundColor: "#9b59b6",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    alignItems: "center",
+    borderRadius: 25,
+    overflow: 'hidden',
   },
   postButtonText: {
     color: "white",
-    fontWeight: "bold",
+    fontWeight: "600",
     fontSize: 16,
   },
   leaveButton: {
-    backgroundColor: "transparent",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.5)",
-    alignItems: "center",
+    flex: 1,
+    borderRadius: 25,
+    overflow: 'hidden',
   },
   leaveButtonText: {
     color: "white",
-    fontSize: 15,
+    fontWeight: "600",
+    fontSize: 16,
   },
   detailsButton: {
-    backgroundColor: "#FFA500",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    alignItems: "center",
+    flex: 1,
+    borderRadius: 25,
+    overflow: 'hidden',
   },
   detailsButtonText: {
     color: "white",
-    fontWeight: "bold",
+    fontWeight: "600",
     fontSize: 16,
   },
   deleteButton: {
-    backgroundColor: "#FF4500",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    alignItems: "center",
+    borderRadius: 25,
+    overflow: 'hidden',
   },
   deleteButtonText: {
     color: "white",
-    fontWeight: "bold",
+    fontWeight: "600",
     fontSize: 16,
   },
   modalContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
   },
   modalContent: {
-    width: "80%",
+    width: "85%",
     backgroundColor: "white",
-    padding: 20,
-    borderRadius: 10,
+    padding: 25,
+    borderRadius: 15,
+    elevation: 10,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 15,
+    marginBottom: 20,
     textAlign: "center",
+    color: "#2C3E50",
   },
   modalText: {
     fontSize: 16,
-    marginBottom: 10,
+    marginBottom: 25,
     textAlign: "center",
+    color: "#555",
+    lineHeight: 24,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    padding: 10,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 25,
+    fontSize: 16,
+    backgroundColor: '#f9f9f9',
+  },
+  modalButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 15,
+  },
+  modalButton: {
+    flex: 1,
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f0f0f0',
+  },
+  confirmButton: {
+    backgroundColor: '#4CAF50',
+  },
+  deleteConfirmButton: {
+    backgroundColor: '#FF5252',
+  },
+  closeButton: {
+    backgroundColor: '#3a7bd5',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
+  },
+  detailsContainer: {
+    marginBottom: 25,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 15,
+  },
+  detailText: {
+    fontSize: 16,
+    marginLeft: 10,
+    color: '#555',
   },
 });
 

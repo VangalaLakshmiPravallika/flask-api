@@ -7,7 +7,8 @@ import {
   Dimensions, 
   ActivityIndicator, 
   TouchableOpacity, 
-  ScrollView
+  ScrollView,
+  AppState
 } from "react-native";
 import { Accelerometer } from "expo-sensors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -26,6 +27,7 @@ export default function StepCounter({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [stepHistory, setStepHistory] = useState([]);
+  const [apiError, setApiError] = useState(false);
   
   // Animations
   const animatedSteps = useState(new Animated.Value(0))[0];
@@ -37,12 +39,14 @@ export default function StepCounter({ navigation }) {
   const dailyGoal = 10000;
   const progressPercentage = Math.min((steps / dailyGoal) * 100, 100);
 
-  // Prepare chart data using your actual step values
+  // Prepare chart data with fallbacks
   const weeklyData = {
     labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     datasets: [
       {
-        data: stepHistory.map(item => item.steps),
+        data: stepHistory.length > 0 
+          ? stepHistory.map(item => item.steps) 
+          : [0, 0, 0, 0, 0, 0, 0],
         color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`,
         strokeWidth: 2
       }
@@ -54,10 +58,10 @@ export default function StepCounter({ navigation }) {
     datasets: [
       {
         data: [
-          Math.round(weeklySteps * 0.8), // Week 1
-          Math.round(weeklySteps * 1.1), // Week 2
-          Math.round(weeklySteps * 0.9), // Week 3
-          Math.round(weeklySteps * 1.2)  // Week 4
+          Math.round(weeklySteps * 0.8) || 0,
+          Math.round(weeklySteps * 1.1) || 0,
+          Math.round(weeklySteps * 0.9) || 0,
+          Math.round(weeklySteps * 1.2) || 0
         ],
         color: (opacity = 1) => `rgba(33, 150, 243, ${opacity})`,
         strokeWidth: 2
@@ -83,76 +87,121 @@ export default function StepCounter({ navigation }) {
   ];
 
   useEffect(() => {
-    const fetchUserEmail = async () => {
-      const email = await AsyncStorage.getItem("userEmail");
-      if (email) setUserEmail(email);
-    };
-    fetchUserEmail();
-    loadSteps();
-    
-    // Animation on mount
-    Animated.sequence([
-      Animated.timing(animatedOpacity, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleValue, {
-        toValue: 1.05,
-        friction: 3,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
-  useEffect(() => {
-    let subscription = Accelerometer.addListener(({ x, y, z }) => {
-      let deltaZ = Math.abs(z - lastZ);
-      if (deltaZ > threshold) {
-        updateSteps(steps + 1);
+    const initializeApp = async () => {
+      try {
+        const email = await AsyncStorage.getItem("userEmail");
+        if (email) setUserEmail(email);
         
-        // Pulse animation when step is detected
+        await loadSteps();
+        
+        // Animation on mount
         Animated.sequence([
-          Animated.timing(scaleValue, {
-            toValue: 1.1,
-            duration: 100,
+          Animated.timing(animatedOpacity, {
+            toValue: 1,
+            duration: 800,
             useNativeDriver: true,
           }),
-          Animated.timing(scaleValue, {
-            toValue: 1,
-            duration: 200,
+          Animated.spring(scaleValue, {
+            toValue: 1.05,
+            friction: 3,
             useNativeDriver: true,
           }),
         ]).start();
-        
-        Animated.timing(animatedSteps, {
-          toValue: steps + 1,
-          duration: 300,
-          useNativeDriver: false,
-        }).start();
+      } catch (error) {
+        console.error("Initialization error:", error);
+        setLoading(false);
+        setApiError(true);
       }
-      setLastZ(z);
-    });
+    };
+    
+    initializeApp();
 
-    return () => subscription.remove();
-  }, [lastZ, steps]);
+    return () => {
+      // Clean up accelerometer listener
+      Accelerometer.removeAllListeners();
+    };
+  }, []);
+
+  useEffect(() => {
+    let subscription;
+    
+    if (!loading) {
+      subscription = Accelerometer.addListener(({ x, y, z }) => {
+        let deltaZ = Math.abs(z - lastZ);
+        if (deltaZ > threshold) {
+          updateSteps(steps + 1);
+          
+          // Pulse animation when step is detected
+          Animated.sequence([
+            Animated.timing(scaleValue, {
+              toValue: 1.1,
+              duration: 100,
+              useNativeDriver: true,
+            }),
+            Animated.timing(scaleValue, {
+              toValue: 1,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+          ]).start();
+          
+          Animated.timing(animatedSteps, {
+            toValue: steps + 1,
+            duration: 300,
+            useNativeDriver: false,
+          }).start();
+        }
+        setLastZ(z);
+      });
+    }
+
+    return () => {
+      if (subscription) subscription.remove();
+    };
+  }, [lastZ, steps, loading]);
 
   const loadSteps = async () => {
     try {
+      setLoading(true);
       const storedSteps = await AsyncStorage.getItem("steps");
       if (storedSteps !== null) {
         setSteps(parseInt(storedSteps, 10));
         animatedSteps.setValue(parseInt(storedSteps, 10));
       }
-      if (userEmail) await fetchStepsFromDB();
+      
+      if (userEmail) {
+        await fetchStepsFromDB();
+      } else {
+        // If no user email, use local storage only
+        setWeeklySteps(steps * 7);
+        setMonthlySteps(steps * 30);
+        setStepHistory(generateFallbackHistory(steps));
+      }
     } catch (error) {
       console.error("Error loading steps:", error);
+      setApiError(true);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const generateFallbackHistory = (currentSteps) => {
+    return [
+      { day: "Monday", steps: currentSteps || 0 },
+      { day: "Tuesday", steps: Math.round((currentSteps || 0) * 1.2) },
+      { day: "Wednesday", steps: Math.round((currentSteps || 0) * 0.8) },
+      { day: "Thursday", steps: Math.round((currentSteps || 0) * 1.1) },
+      { day: "Friday", steps: Math.round((currentSteps || 0) * 0.9) },
+      { day: "Saturday", steps: Math.round((currentSteps || 0) * 1.3) },
+      { day: "Sunday", steps: Math.round((currentSteps || 0) * 0.7) },
+    ];
   };
 
   const fetchStepsFromDB = async () => {
     try {
-      setLoading(true);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
       const response = await fetch(
         "https://healthfitnessbackend.onrender.com/api/get-step-history",
         {
@@ -161,45 +210,48 @@ export default function StepCounter({ navigation }) {
             "Content-Type": "application/json",
             Authorization: `Bearer ${await AsyncStorage.getItem("authToken")}`,
           },
+          signal: controller.signal
         }
       );
 
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
+      
       if (data) {
         setSteps(data.daily || 0);
         setWeeklySteps(data.weekly || 0);
         setMonthlySteps(data.monthly || 0);
-        await AsyncStorage.setItem("steps", data.daily.toString());
+        await AsyncStorage.setItem("steps", (data.daily || 0).toString());
         
-        // Use your actual step history data here
         if (data.history && Array.isArray(data.history)) {
           setStepHistory(data.history);
         } else {
-          // Fallback to current data if no history available
-          setStepHistory([
-            { day: "Monday", steps: data.daily || 0 },
-            { day: "Tuesday", steps: Math.round((data.daily || 0) * 1.2) },
-            { day: "Wednesday", steps: Math.round((data.daily || 0) * 0.8) },
-            { day: "Thursday", steps: Math.round((data.daily || 0) * 1.1) },
-            { day: "Friday", steps: Math.round((data.daily || 0) * 0.9) },
-            { day: "Saturday", steps: Math.round((data.daily || 0) * 1.3) },
-            { day: "Sunday", steps: Math.round((data.daily || 0) * 0.7) },
-          ]);
+          setStepHistory(generateFallbackHistory(data.daily || 0));
         }
       }
-      setLoading(false);
     } catch (error) {
       console.error("Error fetching step history:", error);
-      setLoading(false);
+      setApiError(true);
+      // Use fallback data when API fails
+      const storedSteps = await AsyncStorage.getItem("steps");
+      const currentSteps = storedSteps ? parseInt(storedSteps, 10) : 0;
+      setStepHistory(generateFallbackHistory(currentSteps));
+      setWeeklySteps(currentSteps * 7);
+      setMonthlySteps(currentSteps * 30);
     }
   };
 
   const updateSteps = async (newSteps) => {
-    setSteps(newSteps);
-    await AsyncStorage.setItem("steps", newSteps.toString());
-
     try {
-      await fetch("https://healthfitnessbackend.onrender.com/api/update-steps", {
+      setSteps(newSteps);
+      await AsyncStorage.setItem("steps", newSteps.toString());
+
+      const response = await fetch("https://healthfitnessbackend.onrender.com/api/update-steps", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -208,84 +260,94 @@ export default function StepCounter({ navigation }) {
         body: JSON.stringify({ steps: newSteps }),
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       await fetchStepsFromDB();
     } catch (error) {
       console.error("Error updating steps:", error);
+      // Continue with local storage even if API fails
     }
   };
 
   const renderDashboard = () => (
-    <Animated.View style={[styles.contentContainer, { opacity: animatedOpacity }]}>
-      <Text style={styles.title}>Step Tracker</Text>
-      
-      <Animated.View style={[styles.circleContainer, { transform: [{ scale: scaleValue }] }]}>
-        <Progress.Bar 
-          progress={progressPercentage / 100} 
-          width={Dimensions.get('window').width * 0.8}
-          height={10}
-          color="#4CAF50"
-          unfilledColor="#2A2A40"
-          borderWidth={0}
-          borderRadius={5}
-          animated={true}
-        />
+    <ScrollView 
+      contentContainerStyle={styles.dashboardScrollView}
+      showsVerticalScrollIndicator={false}
+    >
+      <Animated.View style={[styles.contentContainer, { opacity: animatedOpacity }]}>
+        <Text style={styles.title}>Step Tracker</Text>
         
-        <View style={styles.mainCircle}>
-          <Animated.Text style={styles.stepText}>{steps}</Animated.Text>
-          <Text style={styles.stepsLabel}>steps</Text>
-          <Text style={styles.goalText}>Goal: {dailyGoal}</Text>
+        <Animated.View style={[styles.circleContainer, { transform: [{ scale: scaleValue }] }]}>
+          <Progress.Bar 
+            progress={progressPercentage / 100} 
+            width={Dimensions.get('window').width * 0.8}
+            height={10}
+            color="#4CAF50"
+            unfilledColor="#2A2A40"
+            borderWidth={0}
+            borderRadius={5}
+            animated={true}
+          />
+          
+          <View style={styles.mainCircle}>
+            <Animated.Text style={styles.stepText}>{steps}</Animated.Text>
+            <Text style={styles.stepsLabel}>steps</Text>
+            <Text style={styles.goalText}>Goal: {dailyGoal}</Text>
+          </View>
+        </Animated.View>
+
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <Ionicons name="walk" size={24} color="#FFD700" />
+            <Text style={styles.statValue}>{steps}</Text>
+            <Text style={styles.statLabel}>TODAY</Text>
+          </View>
+          
+          <View style={styles.statCard}>
+            <Ionicons name="calendar-outline" size={24} color="#FFD700" />
+            <Text style={styles.statValue}>{weeklySteps}</Text>
+            <Text style={styles.statLabel}>THIS WEEK</Text>
+          </View>
+          
+          <View style={styles.statCard}>
+            <Ionicons name="calendar" size={24} color="#FFD700" />
+            <Text style={styles.statValue}>{monthlySteps}</Text>
+            <Text style={styles.statLabel}>THIS MONTH</Text>
+          </View>
+        </View>
+
+        <View style={styles.chartContainer}>
+          <Text style={styles.chartTitle}>Weekly Progress</Text>
+          <LineChart
+            data={weeklyData}
+            width={Dimensions.get('window').width * 0.9}
+            height={220}
+            chartConfig={{
+              backgroundColor: "#1E1E2C",
+              backgroundGradientFrom: "#1E1E2C",
+              backgroundGradientTo: "#1E1E2C",
+              decimalPlaces: 0,
+              color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+              labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+              style: { borderRadius: 16 },
+              propsForDots: { r: "6", strokeWidth: "2", stroke: "#FFD700" }
+            }}
+            bezier
+            style={styles.chart}
+          />
+        </View>
+        
+        <View style={styles.motivationCard}>
+          <Text style={styles.motivationText}>
+            {steps < 5000 ? "Keep moving! You're making progress! 🚶" : 
+             steps < 10000 ? "Great job! You're halfway to your goal! 🏃" : 
+             "Amazing! You've crushed your goal today! 🏆"}
+          </Text>
         </View>
       </Animated.View>
-
-      <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <Ionicons name="walk" size={24} color="#FFD700" />
-          <Text style={styles.statValue}>{steps}</Text>
-          <Text style={styles.statLabel}>TODAY</Text>
-        </View>
-        
-        <View style={styles.statCard}>
-          <Ionicons name="calendar-outline" size={24} color="#FFD700" />
-          <Text style={styles.statValue}>{weeklySteps}</Text>
-          <Text style={styles.statLabel}>THIS WEEK</Text>
-        </View>
-        
-        <View style={styles.statCard}>
-          <Ionicons name="calendar" size={24} color="#FFD700" />
-          <Text style={styles.statValue}>{monthlySteps}</Text>
-          <Text style={styles.statLabel}>THIS MONTH</Text>
-        </View>
-      </View>
-
-      <View style={styles.chartContainer}>
-        <Text style={styles.chartTitle}>Weekly Progress</Text>
-        <LineChart
-          data={weeklyData}
-          width={Dimensions.get('window').width * 0.9}
-          height={220}
-          chartConfig={{
-            backgroundColor: "#1E1E2C",
-            backgroundGradientFrom: "#1E1E2C",
-            backgroundGradientTo: "#1E1E2C",
-            decimalPlaces: 0,
-            color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-            labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-            style: { borderRadius: 16 },
-            propsForDots: { r: "6", strokeWidth: "2", stroke: "#FFD700" }
-          }}
-          bezier
-          style={styles.chart}
-        />
-      </View>
-      
-      <View style={styles.motivationCard}>
-        <Text style={styles.motivationText}>
-          {steps < 5000 ? "Keep moving! You're making progress! 🚶" : 
-           steps < 10000 ? "Great job! You're halfway to your goal! 🏃" : 
-           "Amazing! You've crushed your goal today! 🏆"}
-        </Text>
-      </View>
-    </Animated.View>
+    </ScrollView>
   );
 
   const renderHistory = () => (
@@ -381,6 +443,23 @@ export default function StepCounter({ navigation }) {
     </Animated.View>
   );
 
+  const renderErrorState = () => (
+    <View style={styles.errorContainer}>
+      <Ionicons name="warning" size={50} color="#FFD700" />
+      <Text style={styles.errorText}>Connection Error</Text>
+      <Text style={styles.errorSubText}>We're using local data. Some features may be limited.</Text>
+      <TouchableOpacity 
+        style={styles.retryButton}
+        onPress={() => {
+          setApiError(false);
+          loadSteps();
+        }}
+      >
+        <Text style={styles.retryButtonText}>Retry Connection</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <LinearGradient
       colors={['#1A2151', '#1E1E2C', '#0D0D1A']}
@@ -419,7 +498,10 @@ export default function StepCounter({ navigation }) {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FFD700" />
+          <Text style={styles.loadingText}>Loading your step data...</Text>
         </View>
+      ) : apiError ? (
+        renderErrorState()
       ) : (
         <>
           {activeTab === 'dashboard' ? renderDashboard() : renderHistory()}
@@ -428,8 +510,6 @@ export default function StepCounter({ navigation }) {
     </LinearGradient>
   );
 }
-
-const { width, height } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
@@ -454,6 +534,10 @@ const styles = StyleSheet.create({
   activeTab: {
     color: '#FFD700',
     fontWeight: 'bold',
+  },
+  dashboardScrollView: {
+    width: '100%',
+    paddingHorizontal: 15,
   },
   contentContainer: {
     flex: 1,
@@ -662,5 +746,40 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    marginTop: 15,
+    fontSize: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 24,
+    color: '#FFD700',
+    fontWeight: 'bold',
+    marginVertical: 10,
+    textAlign: 'center',
+  },
+  errorSubText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#4CAF50',
+    padding: 15,
+    borderRadius: 8,
+    marginTop: 20,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });

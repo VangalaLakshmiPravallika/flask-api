@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { 
   View, Text, TouchableOpacity, Alert, StyleSheet, 
-  Dimensions, ScrollView, Animated 
+  Dimensions, ScrollView, Animated , AppState, ActivityIndicator
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native"; 
@@ -14,7 +14,7 @@ import * as Animatable from 'react-native-animatable';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CHART_MARGIN = 16;
-const CHART_WIDTH = SCREEN_WIDTH - (CHART_MARGIN * 2) - 32; // Adjusted for padding
+const CHART_WIDTH = SCREEN_WIDTH - (CHART_MARGIN * 2) - 32; 
 
 const SleepTracker = () => {
   const [sleepDetected, setSleepDetected] = useState(false);
@@ -23,6 +23,7 @@ const SleepTracker = () => {
   const [sleepHistory, setSleepHistory] = useState([]);
   const [sleepQuality, setSleepQuality] = useState(0);
   const navigation = useNavigation();
+  const appState = useRef(AppState.currentState);
 
   const pulseAnim = new Animated.Value(1);
 
@@ -72,6 +73,8 @@ const SleepTracker = () => {
   const fetchSleepHistory = async () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
+      if (!token) return;
+      
       const response = await axios.get(
         "https://healthfitnessbackend.onrender.com/api/sleep-history",
         { headers: { Authorization: `Bearer ${token}` } }
@@ -109,7 +112,7 @@ const SleepTracker = () => {
       );
 
       Alert.alert("Success", response.data.message);
-      fetchSleepHistory(); 
+      fetchSleepHistory();
     } catch (error) {
       console.error("Error logging sleep:", error);
       Alert.alert("Error", "Failed to log sleep data.");
@@ -147,7 +150,6 @@ const SleepTracker = () => {
       }
     };
 
-    // Sample data if history is empty
     const safeSleepHistory = sleepHistory.length > 0 
       ? sleepHistory 
       : Array.from({ length: 7 }, (_, i) => ({
@@ -156,7 +158,6 @@ const SleepTracker = () => {
           sleep_quality: Math.min(100, Math.max(60, 75 + Math.random() * 20 - 10))
         }));
 
-    // Process data for charts
     const chartData = {
       labels: safeSleepHistory.map(item => 
         new Date(item.date).toLocaleDateString('en-US', { weekday: 'short' })
@@ -281,21 +282,25 @@ const SleepTracker = () => {
             🌙 SLEEP TRACKER
           </Animatable.Text>
 
-          <Animated.View 
-            style={[
-              styles.sleepInfoContainer, 
-              { transform: [{ scale: pulseAnim }] }
-            ]}
-          >
-            {sleepDetected ? (
-              <>
-                <Text style={styles.sleepText}>😴 AUTO-DETECTED SLEEP</Text>
-                <Text style={styles.sleepHoursText}>{sleepHours} hours</Text>
-              </>
-            ) : (
-              <Text style={styles.noSleepText}>🌞 NO SLEEP DETECTED</Text>
-            )}
-          </Animated.View>
+          {loading ? (
+            <ActivityIndicator size="large" color="#4CAF50" />
+          ) : (
+            <Animated.View 
+              style={[
+                styles.sleepInfoContainer, 
+                { transform: [{ scale: pulseAnim }] }
+              ]}
+            >
+              {sleepDetected ? (
+                <>
+                  <Text style={styles.sleepText}>😴 AUTO-DETECTED SLEEP</Text>
+                  <Text style={styles.sleepHoursText}>{sleepHours} hours</Text>
+                </>
+              ) : (
+                <Text style={styles.noSleepText}>🌞 NO SLEEP DETECTED</Text>
+              )}
+            </Animated.View>
+          )}
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity 
@@ -329,7 +334,7 @@ const SleepTracker = () => {
             </TouchableOpacity>
           </View>
 
-          {renderSleepCharts()}
+          {!loading && renderSleepCharts()}
         </BlurView>
       </ScrollView>
     </LinearGradient>

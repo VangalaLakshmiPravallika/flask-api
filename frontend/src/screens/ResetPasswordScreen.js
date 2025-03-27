@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from "react-native";
 
 export default function ResetPasswordScreen({ route, navigation }) {
-  const { reset_token } = route.params; 
+  const { email } = route.params; // Changed from reset_token to email
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -15,49 +15,73 @@ export default function ResetPasswordScreen({ route, navigation }) {
       Alert.alert("Error", "Passwords do not match.");
       return;
     }
+    if (password.length < 6) {
+      Alert.alert("Error", "Password should be at least 6 characters.");
+      return;
+    }
 
     try {
       const response = await fetch("https://healthfitnessbackend.onrender.com/reset-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reset_token, new_password: password }), // Use reset_token instead of email
+        headers: { 
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          email: email,  // Using email instead of reset_token
+          password: password  // Changed from new_password to password
+        }),
       });
 
       const data = await response.json();
-      if (response.ok) {
-        Alert.alert("Success", "Password reset successfully!");
-        navigation.navigate("Login");
-      } else {
-        Alert.alert("Error", data.error || "Failed to reset password.");
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to reset password");
       }
+
+      Alert.alert("Success", "Password reset successfully!");
+      navigation.navigate("Login");
     } catch (error) {
-      Alert.alert("Error", "Something went wrong. Please try again.");
+      Alert.alert("Error", error.message || "Something went wrong. Please try again.");
+      console.error("Reset password error:", error);
     }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Reset Password</Text>
-      <Text style={styles.description}>Enter a new password</Text>
+      <Text style={styles.subtitle}>For: {email}</Text>
+      
       <TextInput
         style={styles.input}
         placeholder="New Password"
         secureTextEntry
         value={password}
         onChangeText={setPassword}
+        autoCapitalize="none"
       />
+      
       <TextInput
         style={styles.input}
-        placeholder="Confirm Password"
+        placeholder="Confirm New Password"
         secureTextEntry
         value={confirmPassword}
         onChangeText={setConfirmPassword}
+        autoCapitalize="none"
       />
-      <TouchableOpacity style={styles.button} onPress={handleResetPassword}>
+      
+      <TouchableOpacity 
+        style={styles.button} 
+        onPress={handleResetPassword}
+        disabled={!password || !confirmPassword}
+      >
         <Text style={styles.buttonText}>Reset Password</Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => navigation.goBack()}>
-        <Text style={styles.backText}>Back</Text>
+      
+      <TouchableOpacity 
+        style={styles.secondaryButton}
+        onPress={() => navigation.goBack()}
+      >
+        <Text style={styles.secondaryButtonText}>Back to Login</Text>
       </TouchableOpacity>
     </View>
   );
@@ -67,43 +91,51 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center",
     padding: 20,
+    backgroundColor: '#f5f5f5',
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#333',
     marginBottom: 10,
+    textAlign: 'center',
   },
-  description: {
+  subtitle: {
     fontSize: 16,
-    textAlign: "center",
-    marginBottom: 20,
-    color: "#666",
+    color: '#666',
+    marginBottom: 30,
+    textAlign: 'center',
   },
   input: {
-    width: "100%",
-    padding: 10,
+    height: 50,
+    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    marginBottom: 20,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    marginBottom: 15,
+    fontSize: 16,
   },
   button: {
-    backgroundColor: "#007bff",
-    padding: 12,
-    borderRadius: 5,
-    alignItems: "center",
-    width: "100%",
+    backgroundColor: '#4CAF50',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
   },
   buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
-  backText: {
+  secondaryButton: {
+    padding: 15,
+    alignItems: 'center',
     marginTop: 15,
-    color: "#007bff",
-    fontSize: 14,
+  },
+  secondaryButtonText: {
+    color: '#4CAF50',
+    fontSize: 16,
   },
 });

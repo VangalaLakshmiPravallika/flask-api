@@ -51,6 +51,7 @@ const ChatBotScreen = () => {
   const [customQuestion, setCustomQuestion] = useState("");
   const [activeTab, setActiveTab] = useState("chat");
   const flatListRef = useRef(null);
+  const questionsScrollRef = useRef(null);
 
   // Auto-scroll to the bottom when new messages are added
   useEffect(() => {
@@ -125,14 +126,6 @@ const ChatBotScreen = () => {
           <Icon name="home" size={20} color={activeTab === "home" ? "#4361EE" : "#555"} />
           <Text style={[styles.tabText, activeTab === "home" && styles.activeTabText]}>Topics</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === "profile" && styles.activeTab]} 
-          onPress={() => setActiveTab("profile")}
-        >
-          <Icon name="user" size={20} color={activeTab === "profile" ? "#4361EE" : "#555"} />
-          <Text style={[styles.tabText, activeTab === "profile" && styles.activeTabText]}>Profile</Text>
-        </TouchableOpacity>
       </View>
       
       {/* Main Content Area */}
@@ -172,8 +165,15 @@ const ChatBotScreen = () => {
             />
 
             {/* Quick Question Chips */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipContainer}>
-              {Object.keys(qaPairs).slice(0, 4).map((question, index) => {
+            <ScrollView 
+              ref={questionsScrollRef}
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              style={styles.chipContainer}
+              contentContainerStyle={styles.chipContentContainer}
+              onContentSizeChange={() => questionsScrollRef.current.scrollToEnd({ animated: true })}
+            >
+              {Object.keys(qaPairs).map((question, index) => {
                 const iconName = questionIcons[question];
                 return (
                   <TouchableOpacity 
@@ -224,60 +224,6 @@ const ChatBotScreen = () => {
               );
             })}
           </ScrollView>
-        )}
-
-        {activeTab === "profile" && (
-          <View style={styles.profileContainer}>
-            <View style={styles.profileHeader}>
-              <View style={styles.profileAvatar}>
-                <Icon name="user" size={40} color="#fff" />
-              </View>
-              <Text style={styles.profileName}>Sleep User</Text>
-              <Text style={styles.profileSubtitle}>Improve your sleep habits</Text>
-            </View>
-            
-            <View style={styles.statsContainer}>
-              <View style={styles.statCard}>
-                <Icon name="calendar" size={24} color="#4361EE" />
-                <Text style={styles.statValue}>7</Text>
-                <Text style={styles.statLabel}>Days Active</Text>
-              </View>
-              
-              <View style={styles.statCard}>
-                <Icon name="message-square" size={24} color="#4361EE" />
-                <Text style={styles.statValue}>12</Text>
-                <Text style={styles.statLabel}>Questions Asked</Text>
-              </View>
-              
-              <View style={styles.statCard}>
-                <Icon name="award" size={24} color="#4361EE" />
-                <Text style={styles.statValue}>Beginner</Text>
-                <Text style={styles.statLabel}>Sleep Level</Text>
-              </View>
-            </View>
-            
-            <View style={styles.settingsSection}>
-              <Text style={styles.sectionTitle}>Preferences</Text>
-              
-              <TouchableOpacity style={styles.settingRow}>
-                <Icon name="bell" size={20} color="#555" />
-                <Text style={styles.settingText}>Notifications</Text>
-                <Icon name="chevron-right" size={20} color="#aaa" />
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.settingRow}>
-                <Icon name="moon" size={20} color="#555" />
-                <Text style={styles.settingText}>Dark Mode</Text>
-                <Icon name="chevron-right" size={20} color="#aaa" />
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.settingRow}>
-                <Icon name="help-circle" size={20} color="#555" />
-                <Text style={styles.settingText}>Help Center</Text>
-                <Icon name="chevron-right" size={20} color="#aaa" />
-              </TouchableOpacity>
-            </View>
-          </View>
         )}
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -403,9 +349,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   chipContainer: {
-    maxHeight: 50,
+    maxHeight: 60,
     paddingHorizontal: 16,
     marginVertical: 10,
+  },
+  chipContentContainer: {
+    paddingRight: 30
   },
   chip: {
     flexDirection: "row",

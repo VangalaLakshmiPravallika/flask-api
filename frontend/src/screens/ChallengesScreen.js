@@ -100,6 +100,32 @@ const JoinedChallenges = () => {
     }
   };
 
+  const updateProgress = async (challengeName) => {
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      await axios.post(`${API_URL}/update-challenge-progress`, { challenge_name: challengeName, progress: 1 }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      Alert.alert("✅ Progress Updated", "Your progress has been recorded!");
+      fetchJoinedChallenges();
+    } catch (error) {
+      Alert.alert("⚠ Error", "Failed to update progress.");
+    }
+  };
+
+  const resetProgress = async (challengeName) => {
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      await axios.post(`${API_URL}/reset-challenge-progress`, { challenge_name: challengeName }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      Alert.alert("🔄 Progress Reset", `Progress reset for "${challengeName}"`);
+      fetchJoinedChallenges();
+    } catch (error) {
+      Alert.alert("⚠ Error", "Failed to reset progress.");
+    }
+  };
+
   const leaveChallenge = async (challengeName) => {
     try {
       const token = await AsyncStorage.getItem("authToken");
@@ -113,6 +139,10 @@ const JoinedChallenges = () => {
     }
   };
 
+  const viewLeaderboard = (challengeName) => {
+    navigation.navigate("Leaderboard", { challengeName });
+  };
+
   return (
     <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
       {loading ? (
@@ -124,10 +154,24 @@ const JoinedChallenges = () => {
           renderItem={({ item }) => (
             <View style={styles.challengeCard}>
               <Text style={styles.challengeTitle}>{item.challenge_name}</Text>
-              <TouchableOpacity style={styles.button} onPress={() => leaveChallenge(item.challenge_name)}>
-                <Ionicons name="close-circle" size={24} color="white" />
-                <Text style={styles.buttonText}>Leave Challenge</Text>
-              </TouchableOpacity>
+              <View style={styles.actionButtonContainer}>
+                <TouchableOpacity style={styles.buttonGreen} onPress={() => updateProgress(item.challenge_name)}>
+                  <Ionicons name="trending-up" size={20} color="white" />
+                  <Text style={styles.buttonText}>Progress</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.buttonOrange} onPress={() => resetProgress(item.challenge_name)}>
+                  <Ionicons name="refresh" size={20} color="white" />
+                  <Text style={styles.buttonText}>Reset</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.buttonBlue} onPress={() => viewLeaderboard(item.challenge_name)}>
+                  <Ionicons name="trophy" size={20} color="white" />
+                  <Text style={styles.buttonText}>Leaderboard</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.buttonRed} onPress={() => leaveChallenge(item.challenge_name)}>
+                  <Ionicons name="close-circle" size={20} color="white" />
+                  <Text style={styles.buttonText}>Leave</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
           contentContainerStyle={styles.listContainer}
@@ -148,9 +192,14 @@ const ChallengesScreen = () => (
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20 },
-  challengeCard: { padding: 20, borderRadius: 10, backgroundColor: "#444" },
+  challengeCard: { padding: 20, borderRadius: 10, backgroundColor: "#444", marginBottom: 10 },
   challengeTitle: { fontSize: 18, fontWeight: "bold", color: "white" },
-  button: { flexDirection: "row", padding: 10, backgroundColor: "#ff5555", borderRadius: 10, marginTop: 10, alignItems: "center" },
+  actionButtonContainer: { flexDirection: "row", justifyContent: "space-between", marginTop: 10 },
+  button: { backgroundColor: "#5C67F2", padding: 10, borderRadius: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", marginVertical: 5 },
+  buttonGreen: { backgroundColor: "#28A745", padding: 10, borderRadius: 10 },
+  buttonOrange: { backgroundColor: "#FFA500", padding: 10, borderRadius: 10 },
+  buttonBlue: { backgroundColor: "#007BFF", padding: 10, borderRadius: 10 },
+  buttonRed: { backgroundColor: "#DC3545", padding: 10, borderRadius: 10 },
   buttonText: { color: "white", marginLeft: 5, fontWeight: "bold" },
 });
 

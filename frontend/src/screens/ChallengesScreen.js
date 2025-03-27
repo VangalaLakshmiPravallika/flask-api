@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, forwardRef, useImperativeHandle } from "react";
 import {
   View, Text, FlatList, TouchableOpacity, ActivityIndicator, Alert, StyleSheet, 
-  SafeAreaView, StatusBar, Dimensions
+  SafeAreaView, StatusBar, Dimensions, Modal, TextInput 
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
@@ -14,14 +14,10 @@ const { width } = Dimensions.get('window');
 const API_URL = "https://healthfitnessbackend.onrender.com/api";
 const Tab = createMaterialTopTabNavigator();
 
-const AvailableChallenges = () => {
+const AvailableChallenges = forwardRef(({ refreshJoinedChallenges }, ref) => {
   const [challenges, setChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
-
-  useEffect(() => {
-    fetchChallenges();
-  }, []);
 
   const fetchChallenges = async () => {
     try {
@@ -30,7 +26,11 @@ const AvailableChallenges = () => {
       const response = await axios.get(`${API_URL}/get-challenges`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setChallenges(response.data.challenges || []);
+      // Filter out the fruit serving challenge
+      const filteredChallenges = (response.data.challenges || []).filter(
+        challenge => challenge.name !== "Fruit Serving Challenge"
+      );
+      setChallenges(filteredChallenges);
     } catch (error) {
       Alert.alert("Error", "Failed to load challenges.");
     } finally {
@@ -46,12 +46,21 @@ const AvailableChallenges = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       Alert.alert("🎉 Success", `You have joined "${challengeName}"`);
+      refreshJoinedChallenges();
     } catch (error) {
       Alert.alert("⚠ Error", "Failed to join challenge.");
     } finally {
       setJoining(false);
     }
   };
+
+  useEffect(() => {
+    fetchChallenges();
+  }, []);
+
+  useImperativeHandle(ref, () => ({
+    fetchChallenges
+  }));
 
   return (
     <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
@@ -67,6 +76,7 @@ const AvailableChallenges = () => {
             <View style={styles.challengeCard}>
               <Text style={styles.challengeTitle}>{item.name}</Text>
               <Text style={styles.challengeDescription}>{item.description}</Text>
+              <Text style={styles.challengeTarget}>Target: {item.target}</Text>
               <TouchableOpacity 
                 style={[styles.button, joining && styles.buttonDisabled]} 
                 onPress={() => joinChallenge(item.name)} 
@@ -88,16 +98,15 @@ const AvailableChallenges = () => {
       )}
     </LinearGradient>
   );
-};
+});
 
-const JoinedChallenges = () => {
+const JoinedChallenges = forwardRef((props, ref) => {
   const [joinedChallenges, setJoinedChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [currentChallenge, setCurrentChallenge] = useState(null);
+  const [progressValue, setProgressValue] = useState("");
   const navigation = useNavigation();
-
-  useEffect(() => {
-    fetchJoinedChallenges();
-  }, []);
 
   const fetchJoinedChallenges = async () => {
     try {
@@ -106,7 +115,11 @@ const JoinedChallenges = () => {
       const response = await axios.get(`${API_URL}/get-user-challenges`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setJoinedChallenges(response.data.challenges || []);
+      // Filter out the fruit serving challenge
+      const filteredChallenges = (response.data.challenges || []).filter(
+        challenge => challenge.challenge_name !== "Fruit Serving Challenge"
+      );
+      setJoinedChallenges(filteredChallenges);
     } catch (error) {
       Alert.alert("Error", "Failed to load joined challenges.");
     } finally {
@@ -114,16 +127,32 @@ const JoinedChallenges = () => {
     }
   };
 
-  const updateProgress = async (challengeName) => {
+  const openProgressModal = (challenge) => {
+    setCurrentChallenge(challenge);
+    setModalVisible(true);
+  };
+
+  const updateProgress = async () => {
     try {
+      if (!progressValue || isNaN(progressValue)) {
+        Alert.alert("Invalid Input", "Please enter a valid number");
+        return;
+      }
+
       const token = await AsyncStorage.getItem("authToken");
-      await axios.post(`${API_URL}/update-challenge-progress`, { challenge_name: challengeName, progress: 1 }, {
+      await axios.post(`${API_URL}/update-challenge-progress`, { 
+        challenge_name: currentChallenge.challenge_name, 
+        progress_value: parseFloat(progressValue) 
+      }, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      
+      setModalVisible(false);
+      setProgressValue("");
       Alert.alert("✅ Progress Updated", "Your progress has been recorded!");
       fetchJoinedChallenges();
     } catch (error) {
-      Alert.alert("⚠ Error", "Failed to update progress.");
+      Alert.alert("⚠ Error", error.response?.data?.error || "Failed to update progress.");
     }
   };
 
@@ -157,6 +186,14 @@ const JoinedChallenges = () => {
     navigation.navigate("Leaderboard", { challengeName });
   };
 
+  useImperativeHandle(ref, () => ({
+    fetchJoinedChallenges
+  }));
+
+  useEffect(() => {
+    fetchJoinedChallenges();
+  }, []);
+
   return (
     <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
       {loading ? (
@@ -173,13 +210,13 @@ const JoinedChallenges = () => {
                 <Text style={styles.challengeTitle}>{item.challenge_name}</Text>
                 {item.progress > 0 && (
                   <View style={styles.progressBadge}>
-                    <Text style={styles.progressText}>{item.progress}%</Text>
+                    <Text style={styles.progressText}>{Math.round(item.progress)}%</Text>
                   </View>
                 )}
               </View>
               
               <View style={styles.actionButtonContainer}>
-                <TouchableOpacity style={styles.buttonGreen} onPress={() => updateProgress(item.challenge_name)}>
+                <TouchableOpacity style={styles.buttonGreen} onPress={() => openProgressModal(item)}>
                   <Ionicons name="trending-up" size={18} color="white" />
                   <Text style={styles.buttonText}>Progress</Text>
                 </TouchableOpacity>
@@ -210,27 +247,96 @@ const JoinedChallenges = () => {
           }
         />
       )}
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              Update Progress for {currentChallenge?.challenge_name}
+            </Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="numeric"
+              placeholder="Enter progress value"
+              value={progressValue}
+              onChangeText={setProgressValue}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.modalButtonCancel}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.modalButtonConfirm}
+                onPress={updateProgress}
+              >
+                <Text style={styles.modalButtonText}>Update</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
-};
+});
 
-const ChallengesScreen = () => (
-  <SafeAreaView style={{ flex: 1, backgroundColor: '#764ba2' }}>
-    <StatusBar barStyle="light-content" />
-    <Tab.Navigator
-      screenOptions={{
-        tabBarLabelStyle: { fontSize: 14, fontWeight: 'bold', textTransform: 'none' },
-        tabBarStyle: { backgroundColor: 'transparent', elevation: 0 },
-        tabBarIndicatorStyle: { backgroundColor: 'white', height: 3 },
-        tabBarActiveTintColor: 'white',
-        tabBarInactiveTintColor: 'rgba(255,255,255,0.7)',
-      }}
-    >
-      <Tab.Screen name="Available" component={AvailableChallenges} />
-      <Tab.Screen name="My Challenges" component={JoinedChallenges} />
-    </Tab.Navigator>
-  </SafeAreaView>
-);
+const ChallengesScreen = () => {
+  const joinedChallengesRef = useRef();
+  const availableChallengesRef = useRef();
+
+  const refreshJoinedChallenges = () => {
+    if (joinedChallengesRef.current) {
+      joinedChallengesRef.current.fetchJoinedChallenges();
+    }
+  };
+
+  const refreshAvailableChallenges = () => {
+    if (availableChallengesRef.current) {
+      availableChallengesRef.current.fetchChallenges();
+    }
+  };
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#764ba2' }}>
+      <StatusBar barStyle="light-content" />
+      <Tab.Navigator
+        screenOptions={{
+          tabBarLabelStyle: { fontSize: 14, fontWeight: 'bold', textTransform: 'none' },
+          tabBarStyle: { backgroundColor: 'transparent', elevation: 0 },
+          tabBarIndicatorStyle: { backgroundColor: 'white', height: 3 },
+          tabBarActiveTintColor: 'white',
+          tabBarInactiveTintColor: 'rgba(255,255,255,0.7)',
+        }}
+      >
+        <Tab.Screen name="Available">
+          {(props) => (
+            <AvailableChallenges 
+              {...props} 
+              ref={availableChallengesRef}
+              refreshJoinedChallenges={refreshJoinedChallenges}
+            />
+          )}
+        </Tab.Screen>
+        <Tab.Screen name="My Challenges">
+          {(props) => (
+            <JoinedChallenges 
+              {...props} 
+              ref={joinedChallengesRef}
+              refreshAvailableChallenges={refreshAvailableChallenges}
+            />
+          )}
+        </Tab.Screen>
+      </Tab.Navigator>
+    </SafeAreaView>
+  );
+};
 
 const styles = StyleSheet.create({
   container: { 
@@ -284,6 +390,12 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.8)',
     marginBottom: 16,
     lineHeight: 20
+  },
+  challengeTarget: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 12,
+    marginBottom: 10,
+    fontStyle: 'italic',
   },
   progressBadge: {
     backgroundColor: '#28A745',
@@ -363,7 +475,55 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     paddingBottom: 20
-  }
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    width: '80%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 15,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  modalButtonCancel: {
+    backgroundColor: '#FF3B30',
+    padding: 10,
+    borderRadius: 5,
+    flex: 1,
+    marginRight: 5,
+  },
+  modalButtonConfirm: {
+    backgroundColor: '#28A745',
+    padding: 10,
+    borderRadius: 5,
+    flex: 1,
+    marginLeft: 5,
+  },
+  modalButtonText: {
+    color: 'white',
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
 });
 
 export default ChallengesScreen;

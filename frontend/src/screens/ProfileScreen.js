@@ -152,7 +152,7 @@ const ProfileScreen = () => {
 
           <TouchableOpacity
             style={styles.editButton}
-            onPress={() => navigation.navigate("EditProfile")}
+            onPress={() => navigation.navigate("HealthDataForm")}
           >
             <LinearGradient
               colors={['#4CAF50', '#2E7D32']}

@@ -6,20 +6,20 @@ import {
   StyleSheet, 
   ActivityIndicator, 
   Image, 
-  TouchableOpacity, 
+  TouchableOpacity,
+  ScrollView,
   Alert,
   AppState
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const WorkoutPlan = () => {
-  const [generalWorkouts, setGeneralWorkouts] = useState([]);
-  const [personalizedWorkouts, setPersonalizedWorkouts] = useState([]);
+  const [weeklyWorkouts, setWeeklyWorkouts] = useState(null);
   const [bmiData, setBmiData] = useState({ bmi: null, intensity_level: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('recommended');
   const [failedImages, setFailedImages] = useState({});
+  const [selectedDay, setSelectedDay] = useState(null);
 
   const fetchWorkoutData = async () => {
     try {
@@ -28,32 +28,33 @@ const WorkoutPlan = () => {
         throw new Error('Please log in to view recommendations');
       }
 
-      // Fetch both endpoints in parallel
-      const [generalResponse, personalizedResponse] = await Promise.all([
-        fetch('https://healthfitnessbackend.onrender.com/api/get-recommendations', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch('https://healthfitnessbackend.onrender.com/api/get-personalized-workouts', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-      ]);
+      const response = await fetch('https://healthfitnessbackend.onrender.com/api/get-personalized-weekly-plan', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
 
-      const [generalData, personalizedData] = await Promise.all([
-        generalResponse.json(),
-        personalizedResponse.json()
-      ]);
+      const data = await response.json();
 
-      if (!generalResponse.ok || !personalizedResponse.ok) {
-        throw new Error(generalData.error || personalizedData.error || 'Failed to fetch workout data');
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch workout data');
       }
 
-      setGeneralWorkouts(generalData.recommended_workouts || []);
-      setPersonalizedWorkouts(personalizedData.recommended_workouts || []);
+      setWeeklyWorkouts(data.weekly_workout_plan || null);
       setBmiData({
-        bmi: personalizedData.bmi,
-        intensity_level: personalizedData.intensity_level || ''
+        bmi: data.bmi,
+        intensity_level: data.intensity_level || ''
       });
       setError(null);
+      
+      // Set initial selected day to today or first available day
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const today = new Date().getDay();
+      const todayName = days[today];
+      
+      if (data.weekly_workout_plan && data.weekly_workout_plan[todayName]) {
+        setSelectedDay(todayName);
+      } else if (data.weekly_workout_plan) {
+        setSelectedDay(Object.keys(data.weekly_workout_plan)[0]);
+      }
     } catch (err) {
       console.error('API Error:', err);
       setError(err.message);
@@ -103,6 +104,64 @@ const WorkoutPlan = () => {
     </TouchableOpacity>
   );
 
+  const renderDayWorkouts = () => {
+    if (!selectedDay || !weeklyWorkouts || !weeklyWorkouts[selectedDay]) {
+      return (
+        <View style={styles.dayContainer}>
+          <Text style={styles.emptyText}>No workouts available for this day</Text>
+        </View>
+      );
+    }
+
+    const dayWorkouts = weeklyWorkouts[selectedDay];
+    
+    return (
+      <ScrollView style={styles.dayContainer}>
+        {Object.entries(dayWorkouts).map(([session, exercises]) => {
+          if (session === 'total_calories' || session === 'total_protein' || 
+              session === 'total_carbs' || session === 'total_fat') {
+            return null;
+          }
+
+          return (
+            <View key={session} style={styles.sessionContainer}>
+              <Text style={styles.sessionTitle}>
+                {session.replace(/_/g, ' ').toUpperCase()}
+              </Text>
+              <FlatList
+                data={exercises}
+                renderItem={renderWorkoutItem}
+                keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
+                scrollEnabled={false}
+              />
+            </View>
+          );
+        })}
+        
+        {/* Daily totals */}
+        <View style={styles.totalsContainer}>
+          <Text style={styles.totalsTitle}>DAILY TOTALS</Text>
+          <View style={styles.totalsRow}>
+            <Text style={styles.totalsLabel}>Calories:</Text>
+            <Text style={styles.totalsValue}>{dayWorkouts.total_calories || 0}</Text>
+          </View>
+          <View style={styles.totalsRow}>
+            <Text style={styles.totalsLabel}>Protein:</Text>
+            <Text style={styles.totalsValue}>{dayWorkouts.total_protein || 0}g</Text>
+          </View>
+          <View style={styles.totalsRow}>
+            <Text style={styles.totalsLabel}>Carbs:</Text>
+            <Text style={styles.totalsValue}>{dayWorkouts.total_carbs || 0}g</Text>
+          </View>
+          <View style={styles.totalsRow}>
+            <Text style={styles.totalsLabel}>Fat:</Text>
+            <Text style={styles.totalsValue}>{dayWorkouts.total_fat || 0}g</Text>
+          </View>
+        </View>
+      </ScrollView>
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -134,7 +193,7 @@ const WorkoutPlan = () => {
     <View style={styles.container}>
       {/* Header with BMI Display */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Workout Plan</Text>
+        <Text style={styles.headerTitle}>Weekly Workout Plan</Text>
         {bmiData.bmi !== null && (
           <View style={styles.bmiContainer}>
             <Text style={styles.bmiLabel}>Your BMI</Text>
@@ -146,40 +205,28 @@ const WorkoutPlan = () => {
         )}
       </View>
 
-      {/* Tab Navigation */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'recommended' && styles.activeTab]}
-          onPress={() => setActiveTab('recommended')}
-        >
-          <Text style={[styles.tabText, activeTab === 'recommended' && styles.activeTabText]}>
-            Recommended
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'personalized' && styles.activeTab]}
-          onPress={() => setActiveTab('personalized')}
-        >
-          <Text style={[styles.tabText, activeTab === 'personalized' && styles.activeTabText]}>
-            Personalized
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {/* Day Navigation */}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.daySelector}
+        contentContainerStyle={styles.daySelectorContent}
+      >
+        {weeklyWorkouts && Object.keys(weeklyWorkouts).map(day => (
+          <TouchableOpacity
+            key={day}
+            style={[styles.dayButton, selectedDay === day && styles.activeDayButton]}
+            onPress={() => setSelectedDay(day)}
+          >
+            <Text style={[styles.dayButtonText, selectedDay === day && styles.activeDayButtonText]}>
+              {day.substring(0, 3)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
-      {/* Workout List */}
-      <FlatList
-        data={activeTab === 'recommended' ? generalWorkouts : personalizedWorkouts}
-        renderItem={renderWorkoutItem}
-        keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>
-            {activeTab === 'recommended' 
-              ? 'No recommended workouts available' 
-              : 'Complete your profile for personalized recommendations'}
-          </Text>
-        }
-      />
+      {/* Workout List for Selected Day */}
+      {renderDayWorkouts()}
     </View>
   );
 };
@@ -220,34 +267,50 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginTop: 2,
   },
-  tabContainer: {
-    flexDirection: 'row',
+  daySelector: {
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#EAECEF',
   },
-  tab: {
-    flex: 1,
-    paddingVertical: 15,
-    alignItems: 'center',
+  daySelectorContent: {
+    paddingHorizontal: 10,
   },
-  activeTab: {
+  dayButton: {
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    marginHorizontal: 5,
+  },
+  activeDayButton: {
     borderBottomWidth: 3,
     borderBottomColor: '#3E82FC',
   },
-  tabText: {
+  dayButtonText: {
     fontSize: 16,
     color: '#666666',
   },
-  activeTabText: {
+  activeDayButtonText: {
     color: '#3E82FC',
     fontWeight: 'bold',
+  },
+  dayContainer: {
+    flex: 1,
+    padding: 10,
+  },
+  sessionContainer: {
+    marginBottom: 20,
+  },
+  sessionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#3E82FC',
+    marginBottom: 10,
+    textTransform: 'capitalize',
   },
   workoutCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
     padding: 15,
-    margin: 10,
+    marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -291,8 +354,36 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginRight: 5,
   },
-  listContent: {
-    paddingBottom: 20,
+  totalsContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 15,
+    marginTop: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  totalsTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#3E82FC',
+    marginBottom: 10,
+  },
+  totalsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 5,
+  },
+  totalsLabel: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  totalsValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A1A',
   },
   errorText: {
     color: 'red',

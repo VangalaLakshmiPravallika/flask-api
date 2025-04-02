@@ -8,7 +8,8 @@ import {
   TouchableOpacity, 
   StyleSheet,
   Alert,
-  RefreshControl
+  RefreshControl,
+  SectionList
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,11 +17,12 @@ import { Ionicons } from '@expo/vector-icons';
 const API_BASE_URL = "https://healthfitnessbackend.onrender.com"; 
 
 const MealRecommendations = ({ navigation }) => {
-  const [mealPlan, setMealPlan] = useState(null);
+  const [weeklyMealPlan, setWeeklyMealPlan] = useState(null);
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [token, setToken] = useState(null);
+  const [expandedDays, setExpandedDays] = useState({});
 
   // Load token and initial data
   useEffect(() => {
@@ -55,11 +57,11 @@ const MealRecommendations = ({ navigation }) => {
     }
   };
 
-  // Fetch meal plan
-  const fetchMealPlan = async () => {
+  // Fetch weekly meal plan
+  const fetchWeeklyMealPlan = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/meal-plan`, {
+      const response = await fetch(`${API_BASE_URL}/api/weekly-meal-plan`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -70,14 +72,28 @@ const MealRecommendations = ({ navigation }) => {
       }
 
       const data = await response.json();
-      setMealPlan(data);
+      setWeeklyMealPlan(data);
+      // Initialize expanded days (none expanded by default)
+      const initialExpanded = {};
+      Object.keys(data).forEach(day => {
+        initialExpanded[day] = false;
+      });
+      setExpandedDays(initialExpanded);
     } catch (error) {
-      console.error('Error fetching meal plan:', error);
-      Alert.alert('Error', 'Failed to load meal recommendations');
+      console.error('Error fetching weekly meal plan:', error);
+      Alert.alert('Error', 'Failed to load weekly meal recommendations');
     } finally {
       setIsLoading(false);
       setRefreshing(false);
     }
+  };
+
+  // Toggle day expansion
+  const toggleDayExpansion = (day) => {
+    setExpandedDays(prev => ({
+      ...prev,
+      [day]: !prev[day]
+    }));
   };
 
   // Handle refresh
@@ -89,7 +105,7 @@ const MealRecommendations = ({ navigation }) => {
   // Fetch all data
   const fetchData = async () => {
     await fetchProfile();
-    await fetchMealPlan();
+    await fetchWeeklyMealPlan();
   };
 
   // Load data when token changes
@@ -130,6 +146,46 @@ const MealRecommendations = ({ navigation }) => {
     </View>
   );
 
+  // Render day section
+const renderDaySection = ({ section }) => (
+  <TouchableOpacity 
+    style={styles.dayHeader} 
+    onPress={() => toggleDayExpansion(section.day)}
+  >
+    <Text style={styles.dayHeaderText}>{section.day}</Text>
+    <Text style={styles.dayCalories}>
+      {safeToFixed(section.data.reduce((sum, meal) => sum + (meal.total_calories || 0), 0))} cal
+    </Text>
+    <Ionicons 
+      name={expandedDays[section.day] ? "chevron-up" : "chevron-down"} 
+      size={20} 
+      color="#666" 
+    />
+  </TouchableOpacity>
+);
+
+
+  // Prepare section data for SectionList
+  const prepareSectionData = () => {
+    if (!weeklyMealPlan) return [];
+    
+    return Object.keys(weeklyMealPlan).map(day => {
+      const dayMeals = weeklyMealPlan[day];
+      return {
+        day,
+        data: [
+          { ...dayMeals.breakfast, mealType: 'Breakfast' },
+          { ...dayMeals.lunch, mealType: 'Lunch' },
+          { ...dayMeals.dinner, mealType: 'Dinner' },
+          ...dayMeals.snacks.map((snack, i) => ({ 
+            ...snack, 
+            mealType: `Snack ${i + 1}` 
+          }))
+        ]
+      };
+    });
+  };
+
   if (!token) {
     return (
       <View style={styles.authContainer}>
@@ -150,34 +206,28 @@ const MealRecommendations = ({ navigation }) => {
           <Text style={styles.profileName}>{profile.name || profile.email}</Text>
           <View style={styles.statsRow}>
             <Text style={styles.stat}>BMI: {safeToFixed(profile.bmi, 1)}</Text>
-            <Text style={styles.stat}>Calories: {safeToFixed(profile.daily_calories, 0)}</Text>
+            <Text style={styles.stat}>Daily Calories: {safeToFixed(profile.daily_calories, 0)}</Text>
           </View>
         </View>
       )}
 
-      {/* Refresh Control */}
-      <RefreshControl
-        refreshing={refreshing}
-        onRefresh={handleRefresh}
-      />
-
       {/* Loading Indicator */}
       {isLoading && <ActivityIndicator size="large" style={styles.loader} />}
 
-      {/* Meal Plan */}
-      {mealPlan ? (
-        <FlatList
-          data={[
-            { ...mealPlan.breakfast, mealType: 'Breakfast' },
-            { ...mealPlan.lunch, mealType: 'Lunch' },
-            { ...mealPlan.dinner, mealType: 'Dinner' },
-            ...mealPlan.snacks.map((snack, i) => ({ 
-              ...snack, 
-              mealType: `Snack ${i + 1}` 
-            }))
-          ]}
-          renderItem={renderMealItem}
-          keyExtractor={(item, index) => index.toString()}
+      {/* Weekly Meal Plan */}
+      {weeklyMealPlan ? (
+        <SectionList
+          sections={prepareSectionData()}
+          keyExtractor={(item, index) => item.mealType + index}
+          renderItem={({ item }) => (expandedDays[item.day] ? renderMealItem({ item }) : null)}
+          renderSectionHeader={renderDaySection}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+            />
+          }
+          stickySectionHeadersEnabled={false}
           contentContainerStyle={styles.listContent}
         />
       ) : (
@@ -187,7 +237,7 @@ const MealRecommendations = ({ navigation }) => {
             <Text style={styles.emptyText}>No meal recommendations available</Text>
             <Button 
               title="Try Again" 
-              onPress={fetchMealPlan} 
+              onPress={fetchWeeklyMealPlan} 
               color="#4CAF50"
             />
           </View>
@@ -237,12 +287,31 @@ const styles = StyleSheet.create({
   loader: {
     marginVertical: 20,
   },
+  dayHeader: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 5,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    elevation: 1,
+  },
+  dayHeaderText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2E7D32',
+  },
+  dayCalories: {
+    fontSize: 14,
+    color: '#666',
+  },
   mealCard: {
     backgroundColor: '#fff',
     borderRadius: 8,
     padding: 15,
-    marginBottom: 15,
-    elevation: 2,
+    marginBottom: 10,
+    elevation: 1,
   },
   mealTitle: {
     fontSize: 16,

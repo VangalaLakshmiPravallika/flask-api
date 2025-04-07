@@ -8,13 +8,14 @@ import {
   Image, 
   TouchableOpacity, 
   Alert,
-  AppState
+  AppState,
+  ScrollView
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const WorkoutPlan = () => {
   const [generalWorkouts, setGeneralWorkouts] = useState([]);
-  const [personalizedWorkouts, setPersonalizedWorkouts] = useState([]);
+  const [weeklyPlan, setWeeklyPlan] = useState(null);
   const [bmiData, setBmiData] = useState({ bmi: null, intensity_level: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -48,7 +49,7 @@ const WorkoutPlan = () => {
       }
 
       setGeneralWorkouts(generalData.recommended_workouts || []);
-      setPersonalizedWorkouts(personalizedData.recommended_workouts || []);
+      setWeeklyPlan(personalizedData.weekly_workout_plan || null);
       setBmiData({
         bmi: personalizedData.bmi,
         intensity_level: personalizedData.intensity_level || ''
@@ -102,6 +103,29 @@ const WorkoutPlan = () => {
       </View>
     </TouchableOpacity>
   );
+
+  const renderDayWorkouts = (day) => {
+    if (!weeklyPlan || !weeklyPlan[day]) return null;
+    
+    const dayWorkouts = weeklyPlan[day];
+    return (
+      <View style={styles.dayContainer} key={day}>
+        <Text style={styles.dayTitle}>{day.charAt(0).toUpperCase() + day.slice(1)}</Text>
+        {dayWorkouts.arms && (
+          <View style={styles.exerciseContainer}>
+            <Text style={styles.exerciseType}>Arms:</Text>
+            {renderWorkoutItem({ item: dayWorkouts.arms })}
+          </View>
+        )}
+        {dayWorkouts.legs && (
+          <View style={styles.exerciseContainer}>
+            <Text style={styles.exerciseType}>Legs:</Text>
+            {renderWorkoutItem({ item: dayWorkouts.legs })}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   if (loading) {
     return (
@@ -166,20 +190,38 @@ const WorkoutPlan = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Workout List */}
-      <FlatList
-        data={activeTab === 'recommended' ? generalWorkouts : personalizedWorkouts}
-        renderItem={renderWorkoutItem}
-        keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>
-            {activeTab === 'recommended' 
-              ? 'No recommended workouts available' 
-              : 'Complete your profile for personalized recommendations'}
-          </Text>
-        }
-      />
+      {/* Content */}
+      {activeTab === 'recommended' ? (
+        <FlatList
+          data={generalWorkouts}
+          renderItem={renderWorkoutItem}
+          keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>
+              No recommended workouts available
+            </Text>
+          }
+        />
+      ) : (
+        <ScrollView contentContainerStyle={styles.weeklyPlanContainer}>
+          {weeklyPlan ? (
+            <>
+              {renderDayWorkouts('monday')}
+              {renderDayWorkouts('tuesday')}
+              {renderDayWorkouts('wednesday')}
+              {renderDayWorkouts('thursday')}
+              {renderDayWorkouts('friday')}
+              {renderDayWorkouts('saturday')}
+              {renderDayWorkouts('sunday')}
+            </>
+          ) : (
+            <Text style={styles.emptyText}>
+              Complete your profile for personalized recommendations
+            </Text>
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 };
@@ -247,7 +289,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
     padding: 15,
-    margin: 10,
+    marginVertical: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -313,6 +355,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
     color: '#999999',
+  },
+  weeklyPlanContainer: {
+    padding: 10,
+    paddingBottom: 20,
+  },
+  dayContainer: {
+    marginBottom: 20,
+  },
+  dayTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 10,
+    marginLeft: 5,
+  },
+  exerciseContainer: {
+    marginBottom: 15,
+  },
+  exerciseType: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3E82FC',
+    marginBottom: 5,
+    marginLeft: 5,
   },
 });
 
